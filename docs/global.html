@@ -1617,7 +1617,7 @@ https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 
 
 <div class="description">
-    <p>A string to report to the BLE socket when the micro:bit has stopped receiving data.</p>
+    <p>A string to report to the BLE socket when the GdxFor has stopped receiving data.</p>
 </div>
 
 
@@ -1685,7 +1685,7 @@ https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 
 
 <div class="description">
-    <p>A string to report to the BLE socket when the GdxFor has stopped receiving data.</p>
+    <p>A string to report to the BLE socket when the micro:bit has stopped receiving data.</p>
 </div>
 
 
@@ -2244,7 +2244,7 @@ that data has stopped coming from the peripheral.</p>
 
         <tr>
             
-                <td class="name"><code>rxChar</code></td>
+                <td class="name"><code>commandChar</code></td>
             
 
             <td class="type">
@@ -2267,7 +2267,7 @@ that data has stopped coming from the peripheral.</p>
 
         <tr>
             
-                <td class="name"><code>txChar</code></td>
+                <td class="name"><code>responseChar</code></td>
             
 
             <td class="type">
@@ -2296,8 +2296,7 @@ that data has stopped coming from the peripheral.</p>
 
 
 <div class="description">
-    <p>Enum for micro:bit protocol.
-https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
+    <p>Enum for Vernier godirect protocol.</p>
 </div>
 
 
@@ -2411,7 +2410,7 @@ https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 
         <tr>
             
-                <td class="name"><code>commandChar</code></td>
+                <td class="name"><code>rxChar</code></td>
             
 
             <td class="type">
@@ -2434,7 +2433,7 @@ https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 
         <tr>
             
-                <td class="name"><code>responseChar</code></td>
+                <td class="name"><code>txChar</code></td>
             
 
             <td class="type">
@@ -2463,7 +2462,8 @@ https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 
 
 <div class="description">
-    <p>Enum for Vernier godirect protocol.</p>
+    <p>Enum for micro:bit protocol.
+https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 </div>
 
 
@@ -2668,6 +2668,74 @@ https://github.com/LLK/scratch-microbit-firmware/blob/master/protocol.md</p>
 
 <div class="description">
     <p>Icon png to be displayed at the left edge of each extension block, encoded as a data URI.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="blockIconURI"><span class="type-signature">(constant) </span>blockIconURI<span class="type-signature"> :string</span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.</p>
 </div>
 
 
@@ -13147,142 +13215,6 @@ LOCAL_THRESHOLD to calculate a new direction value.</p>
 
 
 <div class="description">
-    <p>Icon png to be displayed in the blocks category menu, encoded as a data URI.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">string</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="menuIconURI"><span class="type-signature">(constant) </span>menuIconURI<span class="type-signature"> :string</span></h4>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
-    <p>Url of icon to be displayed in the toolbox menu for the extension category.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">string</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="menuIconURI"><span class="type-signature">(constant) </span>menuIconURI<span class="type-signature"> :string</span></h4>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-<div class="description">
     <p>Icon svg to be displayed in the category menu, encoded as a data URI.</p>
 </div>
 
@@ -13351,7 +13283,143 @@ LOCAL_THRESHOLD to calculate a new direction value.</p>
 
 
 <div class="description">
+    <p>Icon png to be displayed in the blocks category menu, encoded as a data URI.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="menuIconURI"><span class="type-signature">(constant) </span>menuIconURI<span class="type-signature"> :string</span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
     <p>Icon svg to be displayed in the blocks category menu, encoded as a data URI.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="menuIconURI"><span class="type-signature">(constant) </span>menuIconURI<span class="type-signature"> :string</span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Url of icon to be displayed in the toolbox menu for the extension category.</p>
 </div>
 
 
