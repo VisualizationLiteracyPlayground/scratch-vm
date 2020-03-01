@@ -24,7 +24,8 @@ const builtinExtensions = {
     makeymakey: () => require('../extensions/scratch3_makeymakey'),
     boost: () => require('../extensions/scratch3_boost'),
     gdxfor: () => require('../extensions/scratch3_gdx_for'),
-    vizblocks: () => require('../extensions/scratch3_vizblocks')
+    vizblocks: () => require('../extensions/scratch3_vizblocks'),
+    linechart: () => require('../extensions/scratch3_linechart')
 };
 
 /**
