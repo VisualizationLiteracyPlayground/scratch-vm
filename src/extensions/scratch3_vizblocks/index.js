@@ -38,9 +38,9 @@ class Scratch3VizBlocks {
 
 
         // initiate canvas and center of coordinate system
-        this._xCenter = -100;
+        this._xCenter = -160;
         this._yCenter = -100;
-        this._width = 200;
+        this._width = 360;
         this._height = 200;
         this._interval = 20;
 
@@ -163,21 +163,30 @@ class Scratch3VizBlocks {
             blockIconURI: blockIconURI,
             blocks: [
                 {
-                    opcode: 'drawAxis',
+                    opcode: 'drawAxisX',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.drawAxis',
-                        default: 'draw axis',
-                        description: 'draw axis'
+                        id: 'vizblocks.drawAxisX',
+                        default: 'draw axis-X',
+                        description: 'draw axis-X'
                     })
                 },
                 {
-                    opcode: 'read',
+                    opcode: 'drawAxisY',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawAxisY',
+                        default: 'draw axis-Y',
+                        description: 'draw axis-Y'
+                    })
+                },
+                {
+                    opcode: 'readXY',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.read',
                         default: 'read data x:[X] y:[Y]',
-                        description: 'read data'
+                        description: 'read data from (X, Y)'
                     }),
                     arguments: {
                         X: {
@@ -214,9 +223,12 @@ class Scratch3VizBlocks {
 
     /**
      * The pen "clear" block clears the pen layer's contents.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
      */
-    clear () {
+    clear (args, util) {
         const penSkinId = this._getPenLayerID();
+        const target = util.target;
         if (penSkinId >= 0) {
             this.runtime.renderer.penClear(penSkinId);
             this.runtime.requestRedraw();
@@ -228,18 +240,27 @@ class Scratch3VizBlocks {
             this._posEmpty = true;
         }
 
+        target.sprite.costumes_.forEach(costume => {
+            if (costume.name !== 'costume1' && costume.name !== 'costume2') {
+                // eslint-disable-next-line no-console
+                console.log(costume.name);
+                target.deleteCostume(target.getCostumeIndexByName(costume.name));
+            }
+        });
+
     }
 
     /**
-     * The pen "pen down" block causes the target to leave pen trails on future motion.
+     * Draw X axis using functions from "pen block"
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
-    drawAxis (args, util) {
+    drawAxisX (args, util) {
         const target = util.target;
         
         // console.log('draw axis');
         target.setVisible(false);
+        this._costumes = this.loadCostumes(util);
 
         const penSkinId = this._getPenLayerID();
         if (penSkinId >= 0) {
@@ -251,71 +272,117 @@ class Scratch3VizBlocks {
             for (let i = 0; i * this._interval < this._width; i++){
                 const interval = i * this._interval;
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + interval, this._yCenter, this._xCenter + interval, this._yCenter + 5);
-                this.drawText(this._xCenter + interval, this._yCenter - 10, i, target, false);
+            }
+
+            for (let i = 0; i < 10; i++){
+                this.setText(this._xCenter + (i * this._interval), this._yCenter - 10, i, util);
             }
             
-            // console.log(target.getCostumes());
+            this.runtime.requestRedraw();
+
+        }
+    }
+
+    /**
+     * Draw Y axis using functions from "pen block"
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawAxisY (args, util) {
+        const target = util.target;
+        
+        // console.log('draw axis');
+        target.setVisible(false);
+        this._costumes = this.loadCostumes(util);
+
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId >= 0) {
+            const penState = this._getPenState(target);
+            
             target.x = this._xCenter;
             target.y = this._yCenter + this._height;
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
-            for (let i = 1; i * this._interval < this._height; i++){
+            for (let i = 0; i * this._interval < this._height; i++){
                 const interval = i * this._interval;
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter + interval, this._xCenter + 5, this._yCenter + interval);
-                this.drawText(this._xCenter - 10, this._yCenter + interval, i, target, true);
+            }
+
+
+            for (let j = 0; j + 1 < 10; j++){
+                this.setText(this._xCenter - 10, this._yCenter + ((j + 1) * this._interval), j + 1, util);
             }
             
-            // console.log(target.getCostumes().length);
-            for (let i = 0, j = 1; i * this._interval < this._width && j * this._interval < this._height; i++, j++){
-                this.drawText(this._xCenter + (i * this._interval), this._yCenter - 10, i, target, true);
-                this.drawText(this._xCenter - 10, this._yCenter + (j * this._interval), j, target, true);
-            }
-            // console.log(target.getCostumes().length);
-            
-            // target.setVisible(false);
             this.runtime.requestRedraw();
 
         }
     }
 
-    drawText (xPos, yPos, text, target, flag){
-        const index = text;
-        const runtime = this.runtime;
+    /**
+     * load number costumes from existing assets, add costumes to target of the utility object
+     * @param {object} util - utility object provided by the runtime.
+     * @returns {Promise.<Array>} -  A promise for the requested costumes Array.
+     *   If the promise is resolved with non-null, the value is the requested asset or a fallback.
+     *   If the promise is resolved with null, the desired asset could not be found with the current asset sources.
+     *   If the promise is rejected, there was an error on at least one asset source. HTTP 404 does not count as an
+     *   error here, but (for example) HTTP 403 does.
+     */
+    loadCostumes (util){
+        const target = util.target;
 
         // console.log('draw text');
-        const costumeObject = new Object();
-        if (!flag){
-            runtime.storage.load(AssetType.ImageVector, assetID[index]).then(asset => {
-                costumeObject.name = `number${index}`;
+        let result = Promise.resolve();
+        const costumes = [];
+
+        assetID.forEach((d, i) => {
+            const costumeObject = new Object();
+            result = result.then(() => this.runtime.storage.load(AssetType.ImageVector, d).then(asset => {
+                costumeObject.name = `number${i}`;
                 costumeObject.dataFormat = 'svg';
                 costumeObject.asset = asset;
-                loadCostumeFromAsset(costumeObject, runtime).then(costume => {
-                    target.addCostume(costume, index);
-                    target.reorderCostume(target.getCostumeIndexByName(costume.name), index);
+                costumes.push(costumeObject);
+                // eslint-disable-next-line no-shadow
+                loadCostumeFromAsset(costumeObject, this.runtime).then((costume, i) => {
+                    target.addCostume(costume, i);
                 });
-            });
-        }
-        
-        this.setText(index, target, xPos, yPos);
+            }));
+        });
+
+        // eslint-disable-next-line arrow-body-style
+        return result.then(() => {
+            return costumes;
+        });
     }
 
-    setText (index, target, xPos, yPos){
+    /**
+     * set text beside the axes
+     * @param {int} xPos - the position X in coordiantes.
+     * @param {int} yPos - the position Y in coordiantes.
+     * @param {int} index - the number costume index.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    setText (xPos, yPos, index, util){
+        const target = util.target;
         const penSkinId = this._getPenLayerID();
-        if (penSkinId >= 0) {
-            this.runtime.renderer.penStamp(penSkinId, target.drawableID);
-            this.runtime.requestRedraw();
-        }
+        this._costumes.then(costume => {
+            if (penSkinId >= 0) {
+                this.runtime.renderer.penStamp(penSkinId, target.drawableID);
+                
+                target.setCostume(target.getCostumeIndexByName(costume[index].name));
+
+                target.setXY(xPos, yPos);
+                target.setSize(20);
+                target.setVisible(true);
+                this.runtime.requestRedraw();
+            }
+        });
         
-        target.setCostume(target.getCostumeIndexByName(`number${index}`));
-        if (target.getCurrentCostume().name === 'costume2') {
-            target.setCostume(target.getCostumeIndexByName('costume1'));
-        } else {
-            // console.log(target.getCurrentCostume().name);
-        }
-        target.setXY(xPos, yPos);
-        target.setSize(20);
-        target.setVisible(true);
     }
 
+    /**
+     * Draw line using functions from "pen block"
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
     drawLine (args, util){
         const dataX = this._xPos;
         const dataY = this._yPos;
@@ -338,7 +405,11 @@ class Scratch3VizBlocks {
         }
     }
 
-    read (args){
+    /**
+     * read data from input as (x, y)
+     * @param {object} args - the block arguments.
+     */
+    readXY (args){
         const x = Cast.toNumber(args.X);
         const y = Cast.toNumber(args.Y);
 
