@@ -624,8 +624,6 @@ class RenderedTarget extends Target {
      * @return {number} Index of the named costume, or -1 if not present.
      */
     getCostumeIndexByName (costumeName) {
-        // console.log(this.sprite.costumes);
-        // console.log(this.sprite.costumes.length);
         for (let i = 0; i < this.sprite.costumes.length; i++) {
             if (this.getCostumes()[i].name === costumeName) {
                 return i;

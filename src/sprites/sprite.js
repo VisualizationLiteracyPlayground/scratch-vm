@@ -86,7 +86,6 @@ class Sprite {
         if (!costumeObject.name) {
             costumeObject.name = '';
         }
-        // console.log(costumeObject);
         const usedNames = this.costumes_.map(costume => costume.name);
         costumeObject.name = StringUtil.unusedName(costumeObject.name, usedNames);
         this.costumes_.splice(index, 0, costumeObject);

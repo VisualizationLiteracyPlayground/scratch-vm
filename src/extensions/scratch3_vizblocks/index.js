@@ -192,7 +192,7 @@ class Scratch3VizBlocks {
                     arguments: {
                         LABEL: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'Insert x-label here'
+                            defaultValue: 'Insert x-label'
                         }
                     }
                 },
@@ -207,7 +207,7 @@ class Scratch3VizBlocks {
                     arguments: {
                         LABEL: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'Insert y-label here'
+                            defaultValue: 'Insert y-label'
                         }
                     }
                 },
@@ -275,8 +275,6 @@ class Scratch3VizBlocks {
 
         target.sprite.costumes_.forEach(costume => {
             if (costume.name !== 'costume1' && costume.name !== 'costume2') {
-                // eslint-disable-next-line no-console
-                console.log(costume.name);
                 target.deleteCostume(target.getCostumeIndexByName(costume.name));
             }
         });
@@ -291,7 +289,6 @@ class Scratch3VizBlocks {
         const target = util.target;
         const label = Cast.toString(args.LABEL).toUpperCase();
         
-        // console.log('draw axis');
         target.setVisible(false);
         this._costumes = this.loadCostumes(target);
 
@@ -318,7 +315,6 @@ class Scratch3VizBlocks {
         const target = util.target;
         const label = Cast.toString(args.LABEL).toUpperCase();
         
-        // console.log('draw axis');
         target.setVisible(false);
         this._costumes = this.loadCostumes(target);
 
@@ -345,17 +341,24 @@ class Scratch3VizBlocks {
     drawLine (args, util){
         const dataX = this._xPos;
         const dataY = this._yPos;
-        
+
+        const data = dataX.map((d, i) => ({
+            x: d,
+            y: dataY[i]
+        }));
+
+        data.sort((a, b) => (a.x - b.x));
+
         const target = util.target;
         const penSkinId = this._getPenLayerID();
-        if (penSkinId >= 0 && dataX.length > 1 && dataY.length > 1) {
+        if (penSkinId >= 0 && data.length > 1) {
             const penState = this._getPenState(target);
-            for (let i = 0; i < dataX.length; i++){
-                this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, dataX[i], dataY[i]);
+            for (let i = 0; i < data.length; i++){
+                this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, data[i].x, data[i].y);
             }
-            for (let i = 1; i < dataX.length; i++){
+            for (let i = 1; i < data.length; i++){
                 // eslint-disable-next-line max-len
-                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, dataX[i - 1], dataY[i - 1], dataX[i], dataY[i]);
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i - 1].x, data[i - 1].y, data[i].x, data[i].y);
             }
             this.runtime.requestRedraw();
         }
@@ -384,7 +387,6 @@ class Scratch3VizBlocks {
      *   error here, but (for example) HTTP 403 does.
      */
     loadCostumes (target){
-        // console.log('draw text');
         let result = Promise.resolve();
         const costumes = [];
 
@@ -412,6 +414,14 @@ class Scratch3VizBlocks {
         });
     }
 
+    /**
+     * set text beside the axes
+     * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
+     * @param {PenState} penState - mutable pen state associated with that target. This will be created if necessary.
+     * @param {int|string} label - the label text, can be number or string.
+     * @param {string} axisOption - the option of axis, e.g. 'X' or 'Y'.
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
     setText (penSkinId, penState, label, axisOption, target) {
         const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
         const thisMarker = axisOption === 'X' ? this._xMarkers : this._yMarkers;
@@ -422,7 +432,7 @@ class Scratch3VizBlocks {
         for (let index = 0; index < label.length; index++){
             const char = label[index];
             if (char >= 'A' && char <= 'Z') {
-                this.setLabel(index, 0, char, axisOption, target);
+                this.setLabel(penSkinId, index, 0, char, axisOption, target);
             }
         }
 
@@ -438,7 +448,7 @@ class Scratch3VizBlocks {
             numbers.forEach((number, index) => {
                 const num = number.toString();
                 for (let i = 0; i < num.length; i++){
-                    this.setLabel(index, i, num[i], axisOption, target);
+                    this.setLabel(penSkinId, index, i, num[i], axisOption, target);
                 }
             });
 
@@ -461,15 +471,15 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * set number text beside the axes
+     * set text beside the axes
+     * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
      * @param {int} numberIndex - the index of label.
      * @param {int} charIndex - the index of char in label.
      * @param {int|string} costumeIndex - the index of costume.
      * @param {string} axisOption - the option of axis, e.g. 'X' or 'Y'.
      * @param {RenderedTarget} target - target object that has been updated.
      */
-    setLabel (numberIndex, charIndex, costumeIndex, axisOption, target){
-        const penSkinId = this._getPenLayerID();
+    setLabel (penSkinId, numberIndex, charIndex, costumeIndex, axisOption, target){
         let xPos;
         let yPos;
         let size;
@@ -488,12 +498,12 @@ class Scratch3VizBlocks {
         } else if (costumeIndex >= 'A' && costumeIndex <= 'Z') {
             if (axisOption === 'X'){
                 direction = 90;
-                xPos = this._xCenter + (this._interval * 2) + (numberIndex * this._interval / 2);
+                xPos = this._xCenter + (numberIndex * this._interval / 2);
                 yPos = this._yCenter - 40;
             } else if (axisOption === 'Y') {
                 direction = 0;
                 xPos = this._xCenter - 40;
-                yPos = this._yCenter + (this._interval * 2) + (numberIndex * this._interval / 2);
+                yPos = this._yCenter + (numberIndex * this._interval / 2);
             }
             costumeIndex = costumeIndex.charCodeAt() - 65 + 10;
             size = 32;
