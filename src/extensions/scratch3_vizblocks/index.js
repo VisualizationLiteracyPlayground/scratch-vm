@@ -4,6 +4,7 @@ const BlockType = require('../../extension-support/block-type');
 const Cast = require('../../util/cast');
 const Clone = require('../../util/clone');
 const formatMessage = require('format-message');
+const MathUtil = require('../../util/math-util');
 const RenderedTarget = require('../../sprites/rendered-target');
 const StageLayering = require('../../engine/stage-layering');
 const AssetType = require('../../../node_modules/scratch-storage/src/AssetType');
@@ -51,22 +52,27 @@ class Scratch3VizBlocks {
          */
         this._penSkinId = -1;
 
-
-        // initiate canvas and center of coordinate system
+        // Initiate canvas and center of coordinate system
         this._xCenter = -160;
         this._yCenter = -100;
         this._width = 360;
         this._height = 200;
         this._interval = 36;
 
-        // initiate position array
+        // Shared variables
+        this._xMarkers = 10;
+
+        // Variables for line graph
         this._xArray = [];
         this._yArray = [];
         this._xPos = [];
         this._yPos = [];
-        this._xMarkers = 10;
         this._yMarkers = 5;
         this._posEmpty = true;
+
+        // Variables for dot plot
+        this._valCountMap = new Map();
+        this._dotPos = [];
 
         this._onTargetCreated = this._onTargetCreated.bind(this);
         this._onTargetMoved = this._onTargetMoved.bind(this);
@@ -77,6 +83,8 @@ class Scratch3VizBlocks {
         runtime.on('targetWasCreated', this._onTargetCreated);
         runtime.on('RUNTIME_DISPOSED', this.clear.bind(this));
     }
+
+    // PEN RELATED METHODS
 
     /**
      * The key to load & store a target's pen-related state.
@@ -103,6 +111,40 @@ class Scratch3VizBlocks {
                 diameter: 1
             }
         };
+    }
+
+    /**
+     * The minimum and maximum allowed pen size.
+     * The maximum is twice the diagonal of the stage, so that even an
+     * off-stage sprite can fill it.
+     * @type {{min: number, max: number}}
+     */
+    static get PEN_SIZE_RANGE () {
+        return {min: 1, max: 1200};
+    }
+
+    /**
+     * Clamp a pen size value to the range allowed by the pen.
+     * @param {number} requestedSize - the requested pen size.
+     * @returns {number} the clamped size.
+     * @private
+     */
+    _clampPenSize (requestedSize) {
+        return MathUtil.clamp(
+            requestedSize,
+            Scratch3VizBlocks.PEN_SIZE_RANGE.min,
+            Scratch3VizBlocks.PEN_SIZE_RANGE.max
+        );
+    }
+
+    /**
+     * Sets the pen size to the given amount.
+     * @param {number} size - the amount of desired size change.
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
+    setPenSizeTo (size, target) {
+        const penAttributes = this._getPenState(target).penAttributes;
+        penAttributes.diameter = this._clampPenSize(Cast.toNumber(size));
     }
 
     /**
@@ -175,6 +217,8 @@ class Scratch3VizBlocks {
         return penState;
     }
 
+    // METADATA FOR BLOCKS
+
     getInfo () {
         return {
             id: 'vizblocks',
@@ -182,32 +226,37 @@ class Scratch3VizBlocks {
             blockIconURI: blockIconURI,
             blocks: [
                 {
-                    opcode: 'drawAxisX',
+                    opcode: 'drawXAxis',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.drawAxisX',
-                        default: 'draw axis-X label:[LABEL]',
-                        description: 'draw axis-X and insert label'
+                        id: 'vizblocks.drawXAxis',
+                        default: 'draw X-axis for [CHART] label:[LABEL]',
+                        description: 'draw X-axis and insert label'
                     }),
                     arguments: {
+                        CHART: {
+                            type: ArgumentType.STRING,
+                            menu: 'CHART',
+                            defaultValue: 'dot plot'
+                        },
                         LABEL: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'Insert x-label'
+                            defaultValue: 'Type here'
                         }
                     }
                 },
                 {
-                    opcode: 'drawAxisY',
+                    opcode: 'drawYAxis',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.drawAxisY',
-                        default: 'draw axis-Y label:[LABEL]',
-                        description: 'draw axis-Y and insert label'
+                        id: 'vizblocks.drawYAxis',
+                        default: 'draw Y-axis label:[LABEL]',
+                        description: 'draw Y-axis and insert label'
                     }),
                     arguments: {
                         LABEL: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'Insert y-label'
+                            defaultValue: 'Type here'
                         }
                     }
                 },
@@ -215,7 +264,7 @@ class Scratch3VizBlocks {
                     opcode: 'readXY',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.read',
+                        id: 'vizblocks.readXY',
                         default: 'read data x:[X] y:[Y]',
                         description: 'read data from (X, Y)'
                     }),
@@ -247,10 +296,46 @@ class Scratch3VizBlocks {
                         default: 'clear',
                         description: 'clear canvas'
                     })
+                },
+                {
+                    opcode: 'readValCount',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.reaValCount',
+                        default: 'read data value:[value] count:[count]',
+                        description: 'read data from (value, count)'
+                    }),
+                    arguments: {
+                        value: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        count: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'plotDots',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.plotDots',
+                        default: 'plot dots',
+                        description: 'plot dots'
+                    })
                 }
-            ]
+            ],
+            menus: {
+                CHART: {
+                    acceptReporters: true,
+                    items: ['dot plot', 'line chart']
+                }
+            }
         };
     }
+
+    // CODE OF BLOCKS
 
     /**
      * Clears the layer's contents and costumes.
@@ -265,6 +350,7 @@ class Scratch3VizBlocks {
             this.runtime.requestRedraw();
         }
 
+        // Clear for line chart
         if (!this._posEmpty){
             this._xPos.length = 0;
             this._yPos.length = 0;
@@ -272,6 +358,11 @@ class Scratch3VizBlocks {
             this._yArray = [];
             this._posEmpty = true;
         }
+
+        // Clear for dot plot
+        this._valCountMap = new Map();
+        this._dotPos = [];
+        this.setPenSizeTo(1, target);
 
         target.sprite.costumes_.forEach(costume => {
             if (costume.name !== 'costume1' && costume.name !== 'costume2') {
@@ -281,14 +372,15 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Draw X axis using functions from "pen block"
+     * Draw x-axis for line chart or dot plot.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
-    drawAxisX (args, util) {
+    drawXAxis (args, util) {
         const target = util.target;
+        const chart = args.CHART;
         const label = Cast.toString(args.LABEL).toUpperCase();
-        
+
         target.setVisible(false);
         this._costumes = this.loadCostumes(target);
 
@@ -297,44 +389,43 @@ class Scratch3VizBlocks {
             const penState = this._getPenState(target);
             target.x = this._xCenter + this._width;
             target.y = this._yCenter;
-            // draw x axis line
+            // draw x-axis line
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
-            
-            // set text for x axis
-            this.setText(penSkinId, penState, label, 'X', target);
+
+            // Labelling x-axis
+            this.labelAxis(penSkinId, penState, label, 'X', target, chart);
             this.runtime.requestRedraw();
         }
     }
 
     /**
-     * Draw Y axis using functions from "pen block"
+     * Draw Y axis for line chart.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
-    drawAxisY (args, util) {
+    drawYAxis (args, util) {
         const target = util.target;
         const label = Cast.toString(args.LABEL).toUpperCase();
-        
+
         target.setVisible(false);
         this._costumes = this.loadCostumes(target);
 
         const penSkinId = this._getPenLayerID();
         if (penSkinId >= 0) {
             const penState = this._getPenState(target);
-            
             target.x = this._xCenter;
             target.y = this._yCenter + this._height;
-            // draw y axis line
+            // draw y-axis line
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
-            
-            // set text for y axis
-            this.setText(penSkinId, penState, label, 'Y', target);
+
+            // Labelling y-axis
+            this.labelAxis(penSkinId, penState, label, 'Y', target, 'line chart');
             this.runtime.requestRedraw();
         }
     }
 
     /**
-     * Draw line using functions from "pen block"
+     * Draw a line for the line chart.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
@@ -353,9 +444,6 @@ class Scratch3VizBlocks {
         const penSkinId = this._getPenLayerID();
         if (penSkinId >= 0 && data.length > 1) {
             const penState = this._getPenState(target);
-            for (let i = 0; i < data.length; i++){
-                this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, data[i].x, data[i].y);
-            }
             for (let i = 1; i < data.length; i++){
                 // eslint-disable-next-line max-len
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i - 1].x, data[i - 1].y, data[i].x, data[i].y);
@@ -365,7 +453,7 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * read data from input as (x, y)
+     * Read data from input as (x, y)
      * @param {object} args - the block arguments.
      */
     readXY (args){
@@ -378,7 +466,50 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * load number costumes from existing assets, add costumes to target of the utility object
+     * Read data from input as (value, count)
+     * @param {object} args - the block arguments.
+     */
+    readValCount (args){
+        const value = Cast.toNumber(args.value);
+        const count = Cast.toNumber(args.count);
+
+        this._valCountMap.set(value, count);
+    }
+
+    /**
+     * Plot the dots in a dot plot.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    plotDots (args, util){
+        const target = util.target;
+        const penSkinId = this._getPenLayerID();
+        const dotPos = this._dotPos;
+        const valCountMap = this._valCountMap;
+        const incrementDist = 10;
+
+        this.setPenSizeTo(5, target);
+
+        if (penSkinId >= 0 && dotPos.length > 1) {
+            const penState = this._getPenState(target);
+            for (let i = 0; i < dotPos.length; i++) {
+                const pos = dotPos[i][0];
+                const value = dotPos[i][1];
+                const count = valCountMap.get(value);
+
+                // Plot number of dots based on the count of each value
+                for (let j = 0; j < count; j++) {
+                    this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, pos, this._yCenter + 5 + (incrementDist * j));
+                }
+            }
+            this.runtime.requestRedraw();
+        }
+    }
+
+    // HELPER METHODS
+
+    /**
+     * Load number costumes from existing assets and add costumes to target of the utility object
      * @param {RenderedTarget} target - target object that has been updated.
      * @returns {Promise.<Array>} -  A promise for the requested costumes Array.
      *   If the promise is resolved with non-null, the value is the requested asset or a fallback.
@@ -415,63 +546,92 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * set text beside the axes
+     * Label the axes with text and markers.
      * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
      * @param {PenState} penState - mutable pen state associated with that target. This will be created if necessary.
      * @param {int|string} label - the label text, can be number or string.
-     * @param {string} axisOption - the option of axis, e.g. 'X' or 'Y'.
+     * @param {string} axisOption - the axis option, e.g. 'X' or 'Y'.
      * @param {RenderedTarget} target - target object that has been updated.
+     * @param {string} chart - the type of chart e.g. dot plot or line chart
      */
-    setText (penSkinId, penState, label, axisOption, target) {
-        const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
+    labelAxis (penSkinId, penState, label, axisOption, target, chart) {
         const thisMarker = axisOption === 'X' ? this._xMarkers : this._yMarkers;
-        const thisPos = axisOption === 'X' ? this._xPos : this._yPos;
         const thisCenter = axisOption === 'X' ? this._xCenter : this._yCenter;
 
         // set label for axes
         for (let index = 0; index < label.length; index++){
             const char = label[index];
             if (char >= 'A' && char <= 'Z') {
-                this.setLabel(penSkinId, index, 0, char, axisOption, target);
+                this.setText(penSkinId, index, 0, char, axisOption, target);
             }
         }
 
-        if (thisArray.length !== 0) {
-            // set numbers beside axis based on input data
-            const maxValue = Math.max.apply(null, thisArray);
-            const maxNumber = maxValue % 10 === 0 ? maxValue : 10 * (Math.floor(maxValue / 10) + 1);
-            const numbers = [];
-
-            for (let l = 0; l <= thisMarker; l++){
-                numbers.push(maxNumber / thisMarker * l);
+        // generate internal markers
+        if (axisOption === 'X'){
+            for (let i = 0; i * this._interval <= this._width; i++){
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._interval), this._yCenter, this._xCenter + (i * this._interval), this._yCenter + 5);
             }
-            numbers.forEach((number, index) => {
-                const num = number.toString();
-                for (let i = 0; i < num.length; i++){
-                    this.setLabel(penSkinId, index, i, num[i], axisOption, target);
-                }
-            });
-
-            // set position for input data
-            for (let d = 0; d < thisArray.length; d++) {
-                thisPos.push(thisCenter + (thisArray[d] * this._interval / numbers[1]));
+        } else if (axisOption === 'Y'){
+            for (let j = 1; j * this._interval <= this._height; j++){
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter + (j * this._interval), this._xCenter + 5, this._yCenter + (j * this._interval));
             }
+        }
 
-            // generate internal markers
-            if (axisOption === 'X'){
-                for (let i = 0; i * this._interval <= this._width; i++){
-                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._interval), this._yCenter, this._xCenter + (i * this._interval), this._yCenter + 5);
+        if (chart === 'dot plot') {
+            const values = [...this._valCountMap.entries()].map(valCountPair => valCountPair[0]).sort((a, b) => (a.x - b.x));
+            if (values.length !== 0) {
+                const maxValue = Math.max.apply(null, values);
+                const divider = this.prepareLargeNumbers(maxValue, thisMarker, penSkinId, axisOption, target);
+
+                // set position for input data
+                for (let i = 0; i < values.length; i++) {
+                    this._dotPos.push([thisCenter + (values[i] * this._interval / divider), values[i]]);
                 }
-            } else if (axisOption === 'Y'){
-                for (let j = 1; j * this._interval <= this._height; j++){
-                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter + (j * this._interval), this._xCenter + 5, this._yCenter + (j * this._interval));
+            }
+        } else if (chart === 'line chart') {
+            const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
+            const thisPos = axisOption === 'X' ? this._xPos : this._yPos;
+
+            if (thisArray.length !== 0) {
+                const maxValue = Math.max.apply(null, thisArray);
+                const divider = this.prepareLargeNumbers(maxValue, thisMarker, penSkinId, axisOption, target);
+
+                // set position for input data
+                for (let d = 0; d < thisArray.length; d++) {
+                    thisPos.push(thisCenter + (thisArray[d] * this._interval / divider));
                 }
             }
         }
     }
 
     /**
-     * set text beside the axes
+     * Prepare numbers larger than 9 to set as text.
+     * @param {number} maxValue - Max value of the target axis.
+     * @param {number} thisMarker - Number of markers in the axis.
+     * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
+     * @param {string} axisOption - the axis option, e.g. 'X' or 'Y'.
+     * @param {RenderedTarget} target - target object that has been updated.
+     * @returns {number} divider - the divider value for tracking interval distance.
+     */
+    prepareLargeNumbers (maxValue, thisMarker, penSkinId, axisOption, target){
+        const numbers = [];
+        const maxNumber = maxValue % 10 === 0 ? maxValue : 10 * (Math.floor(maxValue / 10) + 1);
+        for (let l = 0; l <= thisMarker; l++){
+            numbers.push(maxNumber / thisMarker * l);
+        }
+        numbers.forEach((number, index) => {
+            const num = number.toString();
+            // Set text for each character in the number
+            for (let i = 0; i < num.length; i++){
+                this.setText(penSkinId, index, i, num[i], axisOption, target);
+            }
+        });
+
+        return numbers[1];
+    }
+
+    /**
+     * Set text for the axis' values
      * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
      * @param {int} numberIndex - the index of label.
      * @param {int} charIndex - the index of char in label.
@@ -479,7 +639,7 @@ class Scratch3VizBlocks {
      * @param {string} axisOption - the option of axis, e.g. 'X' or 'Y'.
      * @param {RenderedTarget} target - target object that has been updated.
      */
-    setLabel (penSkinId, numberIndex, charIndex, costumeIndex, axisOption, target){
+    setText (penSkinId, numberIndex, charIndex, costumeIndex, axisOption, target){
         let xPos;
         let yPos;
         let size;
@@ -498,12 +658,12 @@ class Scratch3VizBlocks {
         } else if (costumeIndex >= 'A' && costumeIndex <= 'Z') {
             if (axisOption === 'X'){
                 direction = 90;
-                xPos = this._xCenter + (numberIndex * this._interval / 2);
+                xPos = this._xCenter + (this._interval * 3) + (numberIndex * this._interval / 3);
                 yPos = this._yCenter - 40;
             } else if (axisOption === 'Y') {
                 direction = 0;
                 xPos = this._xCenter - 40;
-                yPos = this._yCenter + (numberIndex * this._interval / 2);
+                yPos = this._yCenter + this._interval + (numberIndex * this._interval / 3);
             }
             costumeIndex = costumeIndex.charCodeAt() - 65 + 10;
             size = 32;
@@ -521,7 +681,7 @@ class Scratch3VizBlocks {
                 this.runtime.requestRedraw();
             }
         });
-        
+
     }
 
 }
