@@ -465,7 +465,7 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'LINE_DOT_CHART',
+                            menu: 'LINE_DOT_SCATTER_CHART',
                             defaultValue: 'dot plot'
                         },
                         LABEL: {
@@ -479,10 +479,15 @@ class Scratch3VizBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.drawYAxis',
-                        default: 'draw Y-axis label:[LABEL]',
+                        default: 'draw Y-axis for [CHART] label:[LABEL]',
                         description: 'draw Y-axis and insert label'
                     }),
                     arguments: {
+                        CHART: {
+                            type: ArgumentType.STRING,
+                            menu: 'LINE_SCATTER_CHART',
+                            defaultValue: 'line chart'
+                        },
                         LABEL: {
                             type: ArgumentType.STRING,
                             defaultValue: 'Type letters only'
@@ -508,6 +513,15 @@ class Scratch3VizBlocks {
                     })
                 },
                 {
+                    opcode: 'plotPoints',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.plotPoints',
+                        default: 'plot points',
+                        description: 'plot points'
+                    })
+                },
+                {
                     opcode: 'drawPictures',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -527,9 +541,13 @@ class Scratch3VizBlocks {
                 }
             ],
             menus: {
-                LINE_DOT_CHART: {
+                LINE_DOT_SCATTER_CHART: {
                     acceptReporters: true,
-                    items: ['dot plot', 'line chart']
+                    items: ['dot plot', 'line chart', 'scatter plot']
+                },
+                LINE_SCATTER_CHART: {
+                    acceptReporters: true,
+                    items: ['line chart', 'scatter plot']
                 },
                 PIE_DOT_CHART: {
                     acceptReporters: true,
@@ -559,8 +577,8 @@ class Scratch3VizBlocks {
             this.runtime.requestRedraw();
         }
 
-        // Clear for line chart
-        if (!this._posEmpty){
+        // Clear for line chart or scatter plot
+        if (!this._posEmpty) {
             this._xPos.length = 0;
             this._yPos.length = 0;
             this._xArray = [];
@@ -568,7 +586,7 @@ class Scratch3VizBlocks {
             this._posEmpty = true;
         }
 
-        // Clear for dot plot
+        // Clear for dot plot or scatter plot
         this._valCountMap = new Map();
         this._dotPos = [];
         this.setPenSizeTo(1, target);
@@ -678,6 +696,7 @@ class Scratch3VizBlocks {
      */
     drawYAxis (args, util) {
         const target = util.target;
+        const chart = args.CHART;
         const label = Cast.toString(args.LABEL).toUpperCase();
 
         target.setVisible(false);
@@ -692,7 +711,7 @@ class Scratch3VizBlocks {
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
 
             // Labelling y-axis
-            this.labelAxis(penSkinId, penState, label, 'Y', target, 'line chart');
+            this.labelAxis(penSkinId, penState, label, 'Y', target, chart);
             this.runtime.requestRedraw();
         }
     }
@@ -750,6 +769,29 @@ class Scratch3VizBlocks {
                 for (let j = 0; j < count; j++) {
                     this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, pos, this._yCenter + 5 + (incrementDist * j));
                 }
+            }
+            this.runtime.requestRedraw();
+        }
+    }
+
+    /**
+     * Plot the points in a scatter plot
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    plotPoints (args, util) {
+        const dataX = this._xPos;
+        const dataY = this._yPos;
+
+        const target = util.target;
+        const penSkinId = this._getPenLayerID();
+        this.setPenSizeTo(5, target);
+
+        if (penSkinId >= 0 && dataX.length > 1) {
+            const penState = this._getPenState(target);
+            for (let i = 0; i < dataX.length; i++){
+                // eslint-disable-next-line max-len
+                this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, dataX[i], dataY[i], dataX[i], dataY[i]);
             }
             this.runtime.requestRedraw();
         }
@@ -944,7 +986,7 @@ class Scratch3VizBlocks {
                     this._dotPos.push([thisCenter + (values[i] * this._interval / divider), values[i]]);
                 }
             }
-        } else if (chart === 'line chart') {
+        } else if (chart === 'line chart' || chart === 'scatter plot') {
             const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
             const thisPos = axisOption === 'X' ? this._xPos : this._yPos;
 
