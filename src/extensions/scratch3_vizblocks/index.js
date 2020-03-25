@@ -9,6 +9,7 @@ const RenderedTarget = require('../../sprites/rendered-target');
 const StageLayering = require('../../engine/stage-layering');
 const AssetType = require('../../../node_modules/scratch-storage/src/AssetType');
 const {loadCostumeFromAsset} = require('../../import/load-costume');
+const {newCostumeNames} = require('./helper');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -18,7 +19,7 @@ const {loadCostumeFromAsset} = require('../../import/load-costume');
 const blockIconURI = 'data:image/png;base64,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';
 
 /**
- * asset ID for number 0 to 9, letter A to Z(index start from 10)
+ * Asset ID for number 0 to 9, letter A to Z (index starts from 10)
  * @type {string}
  */
 const assetIDArr = ['64b59074f24d0e2405a509a45c0dadba', '9f75c26aa6c56168a3e5a4f598de2c94', 'e8d8bf59db37b5012dd643a16a636042',
@@ -52,27 +53,37 @@ class Scratch3VizBlocks {
          */
         this._penSkinId = -1;
 
-        // Initiate canvas and center of coordinate system
+        // Initiate canvas and center of coordinate system for the line chart / dot plot
         this._xCenter = -160;
         this._yCenter = -100;
         this._width = 360;
         this._height = 200;
-        this._interval = 36;
 
         // Shared variables
         this._xMarkers = 10;
+        this._yMarkers = 5;
+        this._interval = 36;
 
         // Variables for line graph
         this._xArray = [];
         this._yArray = [];
         this._xPos = [];
         this._yPos = [];
-        this._yMarkers = 5;
         this._posEmpty = true;
 
         // Variables for dot plot
         this._valCountMap = new Map();
         this._dotPos = [];
+
+        // Variables for picture graph
+        this._xStart = -250;
+        this._yStart = 150;
+        this._yCostumeStart = 100;
+        this._picCategories = [];
+        this._customSprites = newCostumeNames;
+        if (this._customSprites.length === 0) {
+            this._customSprites = ['costume1'];
+        }
 
         this._onTargetCreated = this._onTargetCreated.bind(this);
         this._onTargetMoved = this._onTargetMoved.bind(this);
@@ -324,12 +335,49 @@ class Scratch3VizBlocks {
                         default: 'plot dots',
                         description: 'plot dots'
                     })
+                },
+                {
+                    opcode: 'readPicCategoryCount',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.readPicCategoryCount',
+                        default: 'read [PICTURE] for category:[category] count:[count]',
+                        description: 'read （picture) for (category) with (count)'
+                    }),
+                    arguments: {
+                        category: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type letters only'
+                        },
+                        PICTURE: {
+                            type: ArgumentType.STRING,
+                            menu: 'PICTURE',
+                            defaultValue: this._customSprites[0]
+                        },
+                        count: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'drawPictures',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawPictures',
+                        default: 'draw pictures',
+                        description: 'draw pictures'
+                    })
                 }
             ],
             menus: {
                 CHART: {
                     acceptReporters: true,
                     items: ['dot plot', 'line chart']
+                },
+                PICTURE: {
+                    acceptReporters: true,
+                    items: this._customSprites
                 }
             }
         };
@@ -345,6 +393,7 @@ class Scratch3VizBlocks {
     clear (args, util) {
         const penSkinId = this._getPenLayerID();
         const target = util.target;
+        target.setVisible(false);
         if (penSkinId >= 0) {
             this.runtime.renderer.penClear(penSkinId);
             this.runtime.requestRedraw();
@@ -364,11 +413,62 @@ class Scratch3VizBlocks {
         this._dotPos = [];
         this.setPenSizeTo(1, target);
 
+        // Clear for picture graph
+        this._picCategories = [];
+        this._xStart = -250;
+        this._yStart = 150;
+
         target.sprite.costumes_.forEach(costume => {
-            if (costume.name !== 'costume1' && costume.name !== 'costume2') {
+            if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
                 target.deleteCostume(target.getCostumeIndexByName(costume.name));
             }
         });
+    }
+
+    /**
+     * Read data from input as (picture, category, count)
+     * @param {object} args - the block arguments.
+     */
+    readPicCategoryCount (args) {
+        this._picCategories.push({
+            picture: args.PICTURE,
+            category: args.category,
+            count: args.count
+        });
+    }
+
+    /**
+     * Draw pictures for the picture graph.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawPictures (args, util) {
+        const target = util.target;
+        target.setCostume('costume1');
+        const penSkinId = this._getPenLayerID();
+        this._costumes = this.loadCostumes(target);
+        const incrementDist = 20;
+
+        if (penSkinId >= 0 && this._picCategories.length > 0) {
+            for (let i = 0; i < this._picCategories.length; i++) {
+                let {picture, category, count} = this._picCategories[i];
+                category = Cast.toString(category).toUpperCase();
+
+                this.processText(category, penSkinId, 'picture', target);
+                // Draw pictures based on the count
+                for (let j = 0; j < count; j++) {
+                    this.runtime.renderer.penStamp(penSkinId, target.drawableID);
+                    target.setCostume(target.getCostumeIndexByName(picture));
+                    target.setDirection(90);
+                    target.setSize(20);
+                    target.setXY(this._xStart + 120 + (incrementDist * j), this._yStart);
+                    target.setVisible(true);
+                    this.runtime.requestRedraw();
+                }
+                this._yStart -= 50;
+            }
+        }
+        this.runtime.renderer.penStamp(penSkinId, target.drawableID);
     }
 
     /**
@@ -429,7 +529,7 @@ class Scratch3VizBlocks {
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
-    drawLine (args, util){
+    drawLine (args, util) {
         const dataX = this._xPos;
         const dataY = this._yPos;
 
@@ -456,7 +556,7 @@ class Scratch3VizBlocks {
      * Read data from input as (x, y)
      * @param {object} args - the block arguments.
      */
-    readXY (args){
+    readXY (args) {
         const x = Cast.toNumber(args.X);
         const y = Cast.toNumber(args.Y);
 
@@ -469,7 +569,7 @@ class Scratch3VizBlocks {
      * Read data from input as (value, count)
      * @param {object} args - the block arguments.
      */
-    readValCount (args){
+    readValCount (args) {
         const value = Cast.toNumber(args.value);
         const count = Cast.toNumber(args.count);
 
@@ -477,11 +577,11 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Plot the dots in a dot plot.
+     * Plot the dots in a dot plot
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
-    plotDots (args, util){
+    plotDots (args, util) {
         const target = util.target;
         const penSkinId = this._getPenLayerID();
         const dotPos = this._dotPos;
@@ -490,7 +590,7 @@ class Scratch3VizBlocks {
 
         this.setPenSizeTo(5, target);
 
-        if (penSkinId >= 0 && dotPos.length > 1) {
+        if (penSkinId >= 0 && dotPos.length > 0) {
             const penState = this._getPenState(target);
             for (let i = 0; i < dotPos.length; i++) {
                 const pos = dotPos[i][0];
@@ -517,7 +617,7 @@ class Scratch3VizBlocks {
      *   If the promise is rejected, there was an error on at least one asset source. HTTP 404 does not count as an
      *   error here, but (for example) HTTP 403 does.
      */
-    loadCostumes (target){
+    loadCostumes (target) {
         let result = Promise.resolve();
         const costumes = [];
 
@@ -546,6 +646,23 @@ class Scratch3VizBlocks {
     }
 
     /**
+     * Process each character to display as a label
+     * @param {int|string} label - the label text, can be number or string.
+     * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
+     * @param {string} option - e.g. 'X', 'Y' or 'pie'.
+     * @param {RenderedTarget} target - target object that has been updated.
+     * @param {?object} opt - optional parameters to process.
+     */
+    processText (label, penSkinId, option, target) {
+        for (let index = 0; index < label.length; index++) {
+            const char = label[index];
+            if (char >= 'A' && char <= 'Z') {
+                this.setText(penSkinId, index, 0, char, option, target);
+            }
+        }
+    }
+
+    /**
      * Label the axes with text and markers.
      * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
      * @param {PenState} penState - mutable pen state associated with that target. This will be created if necessary.
@@ -558,13 +675,8 @@ class Scratch3VizBlocks {
         const thisMarker = axisOption === 'X' ? this._xMarkers : this._yMarkers;
         const thisCenter = axisOption === 'X' ? this._xCenter : this._yCenter;
 
-        // set label for axes
-        for (let index = 0; index < label.length; index++){
-            const char = label[index];
-            if (char >= 'A' && char <= 'Z') {
-                this.setText(penSkinId, index, 0, char, axisOption, target);
-            }
-        }
+        // Set up label for axis
+        this.processText(label, penSkinId, axisOption, target);
 
         // generate internal markers
         if (axisOption === 'X'){
@@ -613,7 +725,7 @@ class Scratch3VizBlocks {
      * @param {RenderedTarget} target - target object that has been updated.
      * @returns {number} divider - the divider value for tracking interval distance.
      */
-    prepareLargeNumbers (maxValue, thisMarker, penSkinId, axisOption, target){
+    prepareLargeNumbers (maxValue, thisMarker, penSkinId, axisOption, target) {
         const numbers = [];
         const maxNumber = maxValue % 10 === 0 ? maxValue : 10 * (Math.floor(maxValue / 10) + 1);
         for (let l = 0; l <= thisMarker; l++){
@@ -636,43 +748,48 @@ class Scratch3VizBlocks {
      * @param {int} numberIndex - the index of label.
      * @param {int} charIndex - the index of char in label.
      * @param {int|string} costumeIndex - the index of costume.
-     * @param {string} axisOption - the option of axis, e.g. 'X' or 'Y'.
+     * @param {string} option - the context to set text in.
      * @param {RenderedTarget} target - target object that has been updated.
      */
-    setText (penSkinId, numberIndex, charIndex, costumeIndex, axisOption, target){
+    setText (penSkinId, numberIndex, charIndex, costumeIndex, option, target) {
         let xPos;
         let yPos;
         let size;
         let direction;
 
         // set text based on costumeIndex
-        if (costumeIndex <= 9 && costumeIndex >= 0){
-            if (axisOption === 'X'){
+        if (costumeIndex <= 9 && costumeIndex >= 0) {
+            if (option === 'X') {
                 xPos = this._xCenter + (numberIndex * this._interval) + (charIndex * 8);
                 yPos = this._yCenter - 10;
-            } else if (axisOption === 'Y') {
+            } else if (option === 'Y') {
                 xPos = this._xCenter - 10;
                 yPos = this._yCenter + (numberIndex * this._interval) + (charIndex * 8);
             }
             size = 20;
         } else if (costumeIndex >= 'A' && costumeIndex <= 'Z') {
-            if (axisOption === 'X'){
+            if (option === 'X') {
                 direction = 90;
                 xPos = this._xCenter + (this._interval * 3) + (numberIndex * this._interval / 3);
                 yPos = this._yCenter - 40;
-            } else if (axisOption === 'Y') {
+                size = 32;
+            } else if (option === 'Y') {
                 direction = 0;
                 xPos = this._xCenter - 40;
                 yPos = this._yCenter + this._interval + (numberIndex * this._interval / 3);
+                size = 32;
+            } else if (option === 'picture') {
+                direction = 90;
+                xPos = this._xStart + this._interval + (numberIndex * this._interval / 5);
+                yPos = this._yStart;
+                size = 20;
             }
             costumeIndex = costumeIndex.charCodeAt() - 65 + 10;
-            size = 32;
         }
 
         this._costumes.then(costume => {
             if (penSkinId >= 0) {
                 this.runtime.renderer.penStamp(penSkinId, target.drawableID);
-
                 target.setCostume(target.getCostumeIndexByName(costume[costumeIndex].name));
                 target.setXY(xPos, yPos);
                 target.setSize(size);
@@ -681,9 +798,7 @@ class Scratch3VizBlocks {
                 this.runtime.requestRedraw();
             }
         });
-
     }
-
 }
 
 module.exports = Scratch3VizBlocks;
