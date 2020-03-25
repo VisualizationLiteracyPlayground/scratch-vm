@@ -3,6 +3,8 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const Cast = require('../../util/cast');
 const Clone = require('../../util/clone');
+const Color = require('../../util/color');
+const log = require('../../util/log');
 const formatMessage = require('format-message');
 const MathUtil = require('../../util/math-util');
 const RenderedTarget = require('../../sprites/rendered-target');
@@ -17,6 +19,18 @@ const {newCostumeNames} = require('./helper');
  */
 // eslint-disable-next-line max-len
 const blockIconURI = 'data:image/png;base64,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';
+
+/**
+ * Enum for pen color parameter values.
+ * @readonly
+ * @enum {string}
+ */
+const ColorParam = {
+    COLOR: 'color',
+    SATURATION: 'saturation',
+    BRIGHTNESS: 'brightness',
+    TRANSPARENCY: 'transparency'
+};
 
 /**
  * Asset ID for number 0 to 9, letter A to Z (index starts from 10)
@@ -76,8 +90,8 @@ class Scratch3VizBlocks {
         this._dotPos = [];
 
         // Variables for picture graph
-        this._xStart = -250;
-        this._yStart = 150;
+        this._xPicStart = -250;
+        this._yPicStart = 150;
         this._yCostumeStart = 100;
         this._picCategories = [];
         this._customSprites = newCostumeNames;
@@ -85,12 +99,20 @@ class Scratch3VizBlocks {
             this._customSprites = ['costume1'];
         }
 
-        this._onTargetCreated = this._onTargetCreated.bind(this);
-        this._onTargetMoved = this._onTargetMoved.bind(this);
+        // Variables for pie chart
+        this._xPieStart = -250;
+        this._yPieStart = 150;
+        this._radius = 120;
+        this._categorySizesArr = [];
+        this._pieChartSize = 0;
+        this._colors = [];
 
-        // costumes array
+        // Costumes array
         this._costumes = [];
 
+        // Event listeners
+        this._onTargetCreated = this._onTargetCreated.bind(this);
+        this._onTargetMoved = this._onTargetMoved.bind(this);
         runtime.on('targetWasCreated', this._onTargetCreated);
         runtime.on('RUNTIME_DISPOSED', this.clear.bind(this));
     }
@@ -135,6 +157,26 @@ class Scratch3VizBlocks {
     }
 
     /**
+     * Wrap a color input into the range (0,100).
+     * @param {number} value - the value to be wrapped.
+     * @returns {number} the wrapped value.
+     * @private
+     */
+    _wrapColor (value) {
+        return MathUtil.wrapClamp(value, 0, 100);
+    }
+
+    /**
+     * Clamp a pen color parameter to the range (0,100).
+     * @param {number} value - the value to be clamped.
+     * @returns {number} the clamped value.
+     * @private
+     */
+    _clampColorParam (value) {
+        return MathUtil.clamp(value, 0, 100);
+    }
+
+    /**
      * Clamp a pen size value to the range allowed by the pen.
      * @param {number} requestedSize - the requested pen size.
      * @returns {number} the clamped size.
@@ -146,6 +188,18 @@ class Scratch3VizBlocks {
             Scratch3VizBlocks.PEN_SIZE_RANGE.min,
             Scratch3VizBlocks.PEN_SIZE_RANGE.max
         );
+    }
+
+    /**
+     * Convert a pen transparency value to an alpha value.
+     * Alpha ranges from 0 to 1, where 0 is transparent and 1 is opaque.
+     * Transparency ranges from 0 to 100, where 0 is opaque and 100 is transparent.
+     * @param {number} transparency - the input transparency value.
+     * @returns {number} the alpha value.
+     * @private
+     */
+    _transparencyToAlpha (transparency) {
+        return 1.0 - (transparency / 100.0);
     }
 
     /**
@@ -200,6 +254,94 @@ class Scratch3VizBlocks {
     }
 
     /**
+     * Update the cached color from the color, saturation, brightness and transparency values
+     * in the provided PenState object.
+     * @param {PenState} penState - the pen state to update.
+     * @private
+     */
+    _updatePenColor (penState) {
+        const rgb = Color.hsvToRgb({
+            h: penState.color * 360 / 100,
+            s: penState.saturation / 100,
+            v: penState.brightness / 100
+        });
+        penState.penAttributes.color4f[0] = rgb.r / 255.0;
+        penState.penAttributes.color4f[1] = rgb.g / 255.0;
+        penState.penAttributes.color4f[2] = rgb.b / 255.0;
+        penState.penAttributes.color4f[3] = this._transparencyToAlpha(penState.transparency);
+    }
+
+    /**
+     * Set or change a single color parameter on the pen state, and update the pen color.
+     * @param {ColorParam} param - the name of the color parameter to set or change.
+     * @param {number} value - the value to set or change the param by.
+     * @param {PenState} penState - the pen state to update.
+     * @param {boolean} change - if true change param by value, if false set param to value.
+     * @private
+     */
+    _setOrChangeColorParam (param, value, penState, change) {
+        switch (param) {
+        case ColorParam.COLOR:
+            penState.color = this._wrapColor(value + (change ? penState.color : 0));
+            break;
+        case ColorParam.SATURATION:
+            penState.saturation = this._clampColorParam(value + (change ? penState.saturation : 0));
+            break;
+        case ColorParam.BRIGHTNESS:
+            penState.brightness = this._clampColorParam(value + (change ? penState.brightness : 0));
+            break;
+        case ColorParam.TRANSPARENCY:
+            penState.transparency = this._clampColorParam(value + (change ? penState.transparency : 0));
+            break;
+        default:
+            log.warn(`Tried to set or change unknown color parameter: ${param}`);
+        }
+        this._updatePenColor(penState);
+    }
+
+    /**
+     * Changes one of the pen's color parameters by a given amount.
+     * @param {number} value - the amount to change the selected parameter by.
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
+    changePenColorParamBy (value, target) {
+        const penState = this._getPenState(target);
+        this._setOrChangeColorParam('color', Cast.toNumber(value), penState, true);
+    }
+
+    /**
+     * Causes the target to leave pen trails on future motion.
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
+    penDown (target) {
+        const penState = this._getPenState(target);
+
+        if (!penState.penDown) {
+            penState.penDown = true;
+            target.addListener(RenderedTarget.EVENT_TARGET_MOVED, this._onTargetMoved);
+        }
+
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId >= 0) {
+            this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, target.x, target.y);
+            this.runtime.requestRedraw();
+        }
+    }
+
+    /**
+     * Stops the target from leaving pen trails.
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
+    penUp (target) {
+        const penState = this._getPenState(target);
+
+        if (penState.penDown) {
+            penState.penDown = false;
+            target.removeListener(RenderedTarget.EVENT_TARGET_MOVED, this._onTargetMoved);
+        }
+    }
+
+    /**
      * Retrieve the ID of the renderer "Skin" corresponding to the pen layer. If
      * the pen Skin doesn't yet exist, create it.
      * @returns {int} the Skin ID of the pen layer, or -1 on failure.
@@ -237,47 +379,21 @@ class Scratch3VizBlocks {
             blockIconURI: blockIconURI,
             blocks: [
                 {
-                    opcode: 'drawXAxis',
+                    opcode: 'clear',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.drawXAxis',
-                        default: 'draw X-axis for [CHART] label:[LABEL]',
-                        description: 'draw X-axis and insert label'
-                    }),
-                    arguments: {
-                        CHART: {
-                            type: ArgumentType.STRING,
-                            menu: 'CHART',
-                            defaultValue: 'dot plot'
-                        },
-                        LABEL: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'Type here'
-                        }
-                    }
-                },
-                {
-                    opcode: 'drawYAxis',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.drawYAxis',
-                        default: 'draw Y-axis label:[LABEL]',
-                        description: 'draw Y-axis and insert label'
-                    }),
-                    arguments: {
-                        LABEL: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'Type here'
-                        }
-                    }
+                        id: 'vizblocks.clear',
+                        default: 'clear',
+                        description: 'clear canvas'
+                    })
                 },
                 {
                     opcode: 'readXY',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.readXY',
-                        default: 'read data x:[X] y:[Y]',
-                        description: 'read data from (X, Y)'
+                        default: 'read x:[X] y:[Y]',
+                        description: 'read from (X, Y)'
                     }),
                     arguments: {
                         X: {
@@ -291,50 +407,28 @@ class Scratch3VizBlocks {
                     }
                 },
                 {
-                    opcode: 'drawLine',
+                    opcode: 'readKeyValue',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.drawLine',
-                        default: 'draw line',
-                        description: 'draw line'
-                    })
-                },
-                {
-                    opcode: 'clear',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.clear',
-                        default: 'clear',
-                        description: 'clear canvas'
-                    })
-                },
-                {
-                    opcode: 'readValCount',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.reaValCount',
-                        default: 'read data value:[value] count:[count]',
-                        description: 'read data from (value, count)'
+                        id: 'vizblocks.readKeyValue',
+                        default: 'read key:[key] value:[value] for [CHART]',
+                        description: 'read from (value, count)'
                     }),
                     arguments: {
+                        key: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type here'
+                        },
                         value: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 0
                         },
-                        count: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
+                        CHART: {
+                            type: ArgumentType.STRING,
+                            menu: 'PIE_DOT_CHART',
+                            defaultValue: 'dot plot'
                         }
                     }
-                },
-                {
-                    opcode: 'plotDots',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.plotDots',
-                        default: 'plot dots',
-                        description: 'plot dots'
-                    })
                 },
                 {
                     opcode: 'readPicCategoryCount',
@@ -361,6 +455,59 @@ class Scratch3VizBlocks {
                     }
                 },
                 {
+                    opcode: 'drawXAxis',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawXAxis',
+                        default: 'draw X-axis for [CHART] label:[LABEL]',
+                        description: 'draw X-axis and insert label'
+                    }),
+                    arguments: {
+                        CHART: {
+                            type: ArgumentType.STRING,
+                            menu: 'LINE_DOT_CHART',
+                            defaultValue: 'dot plot'
+                        },
+                        LABEL: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type letters only'
+                        }
+                    }
+                },
+                {
+                    opcode: 'drawYAxis',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawYAxis',
+                        default: 'draw Y-axis label:[LABEL]',
+                        description: 'draw Y-axis and insert label'
+                    }),
+                    arguments: {
+                        LABEL: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type letters only'
+                        }
+                    }
+                },
+                {
+                    opcode: 'drawLine',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawLine',
+                        default: 'draw line',
+                        description: 'draw line'
+                    })
+                },
+                {
+                    opcode: 'plotDots',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.plotDots',
+                        default: 'plot dots',
+                        description: 'plot dots'
+                    })
+                },
+                {
                     opcode: 'drawPictures',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -368,12 +515,25 @@ class Scratch3VizBlocks {
                         default: 'draw pictures',
                         description: 'draw pictures'
                     })
+                },
+                {
+                    opcode: 'drawPie',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawPie',
+                        default: 'draw pie',
+                        description: 'draw pie'
+                    })
                 }
             ],
             menus: {
-                CHART: {
+                LINE_DOT_CHART: {
                     acceptReporters: true,
                     items: ['dot plot', 'line chart']
+                },
+                PIE_DOT_CHART: {
+                    acceptReporters: true,
+                    items: ['dot plot', 'pie chart']
                 },
                 PICTURE: {
                     acceptReporters: true,
@@ -415,14 +575,61 @@ class Scratch3VizBlocks {
 
         // Clear for picture graph
         this._picCategories = [];
-        this._xStart = -250;
-        this._yStart = 150;
+        this._xPicStart = -250;
+        this._yPicStart = 150;
+
+        // Clear for pie chart
+        this._categorySizesArr = [];
+        this._pieChartSize = 0;
+        this._colors = [];
+        this._xPieStart = -250;
+        this._yPieStart = 150;
 
         target.sprite.costumes_.forEach(costume => {
             if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
                 target.deleteCostume(target.getCostumeIndexByName(costume.name));
             }
         });
+        target.setCostume('costume1');
+    }
+
+    /**
+     * Read data from input as (x, y)
+     * @param {object} args - the block arguments.
+     */
+    readXY (args) {
+        const x = Cast.toNumber(args.X);
+        const y = Cast.toNumber(args.Y);
+
+        this._xArray.push(x);
+        this._yArray.push(y);
+        this._posEmpty = false;
+    }
+
+    /**
+     * Read data from input as (key, value, CHART)
+     * @param {object} args - the block arguments.
+     */
+    readKeyValue (args) {
+        if (args.CHART === 'dot plot') {
+            const value = Cast.toNumber(args.key);
+            const count = Cast.toNumber(args.value);
+
+            this._valCountMap.set(value, count);
+        } else if (args.CHART === 'pie chart') {
+            const category = Cast.toString(args.key);
+            const size = Cast.toNumber(args.value);
+
+            this._categorySizesArr.push([category, size]);
+            this._pieChartSize += size;
+
+            if (this._colors.length === 0) {
+                this._colors = [15];
+            } else {
+                this._colors.push(this._colors[this._colors.length - 1] + 15);
+            }
+        }
+
     }
 
     /**
@@ -435,40 +642,6 @@ class Scratch3VizBlocks {
             category: args.category,
             count: args.count
         });
-    }
-
-    /**
-     * Draw pictures for the picture graph.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    drawPictures (args, util) {
-        const target = util.target;
-        target.setCostume('costume1');
-        const penSkinId = this._getPenLayerID();
-        this._costumes = this.loadCostumes(target);
-        const incrementDist = 20;
-
-        if (penSkinId >= 0 && this._picCategories.length > 0) {
-            for (let i = 0; i < this._picCategories.length; i++) {
-                let {picture, category, count} = this._picCategories[i];
-                category = Cast.toString(category).toUpperCase();
-
-                this.processText(category, penSkinId, 'picture', target);
-                // Draw pictures based on the count
-                for (let j = 0; j < count; j++) {
-                    this.runtime.renderer.penStamp(penSkinId, target.drawableID);
-                    target.setCostume(target.getCostumeIndexByName(picture));
-                    target.setDirection(90);
-                    target.setSize(20);
-                    target.setXY(this._xStart + 120 + (incrementDist * j), this._yStart);
-                    target.setVisible(true);
-                    this.runtime.requestRedraw();
-                }
-                this._yStart -= 50;
-            }
-        }
-        this.runtime.renderer.penStamp(penSkinId, target.drawableID);
     }
 
     /**
@@ -553,30 +726,6 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Read data from input as (x, y)
-     * @param {object} args - the block arguments.
-     */
-    readXY (args) {
-        const x = Cast.toNumber(args.X);
-        const y = Cast.toNumber(args.Y);
-
-        this._xArray.push(x);
-        this._yArray.push(y);
-        this._posEmpty = false;
-    }
-
-    /**
-     * Read data from input as (value, count)
-     * @param {object} args - the block arguments.
-     */
-    readValCount (args) {
-        const value = Cast.toNumber(args.value);
-        const count = Cast.toNumber(args.count);
-
-        this._valCountMap.set(value, count);
-    }
-
-    /**
      * Plot the dots in a dot plot
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
@@ -606,7 +755,102 @@ class Scratch3VizBlocks {
         }
     }
 
+    /**
+     * Draw pictures for the picture graph.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawPictures (args, util) {
+        const target = util.target;
+        target.setCostume('costume1');
+        const penSkinId = this._getPenLayerID();
+        this._costumes = this.loadCostumes(target);
+        const incrementDist = 20;
+
+        if (penSkinId >= 0 && this._picCategories.length > 0) {
+            for (let i = 0; i < this._picCategories.length; i++) {
+                let {picture, category, count} = this._picCategories[i];
+                category = Cast.toString(category).toUpperCase();
+
+                this.processText(category, penSkinId, 'picture', target);
+                // Draw pictures based on the count
+                for (let j = 0; j < count; j++) {
+                    this.runtime.renderer.penStamp(penSkinId, target.drawableID);
+                    target.setCostume(target.getCostumeIndexByName(picture));
+                    target.setDirection(90);
+                    target.setSize(20);
+                    target.setXY(this._xPicStart + 120 + (incrementDist * j), this._yPicStart);
+                    target.setVisible(true);
+                    this.runtime.requestRedraw();
+                }
+                this._yPicStart -= 50;
+            }
+        }
+        this.runtime.renderer.penStamp(penSkinId, target.drawableID);
+    }
+
+    /**
+     * Draw a line for the line chart.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawPie (args, util) {
+        const target = util.target;
+        target.setDirection(0);
+        const penSkinId = this._getPenLayerID();
+        const penState = this._getPenState(target);
+        this._costumes = this.loadCostumes(target);
+
+        if (penSkinId >= 0 && this._categorySizesArr.length > 0) {
+            // Draw and label separate sections of the pie
+            for (let i = 0; i < this._categorySizesArr.length; i++) {
+                const currLabel = Cast.toString(this._categorySizesArr[i][0]).toUpperCase();
+                const currSize = this._categorySizesArr[i][1];
+                this.changePenColorParamBy(this._colors[i], target);
+
+                // Draw label + color marking
+                this.processText(currLabel, penSkinId, 'pie', target);
+                this.setPenSizeTo(5, target);
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xPieStart + 120, this._yPieStart, this._xPieStart + 170, this._yPieStart);
+                this.setPenSizeTo(1, target);
+
+                let renderCount = Math.floor((currSize / this._pieChartSize) * (2 * Math.PI * this._radius));
+                const degreesToTurn = 180 / (Math.PI * this._radius);
+                let isDrawing = false;
+
+                while (renderCount >= 0) {
+                    if (isDrawing) {
+                        target.setDirection(target.direction + degreesToTurn);
+                    } else {
+                        target.setDirection(target.direction);
+                    }
+                    target.setXY(75, 0); // Start at right side of the renderer section
+                    isDrawing = true;
+                    this.penDown(target);
+                    this.moveSteps(this._radius, target);
+                    this.penUp(target);
+
+                    renderCount--;
+                }
+                this._yPieStart -= 30;
+            }
+            this.runtime.requestRedraw();
+        }
+    }
+
     // HELPER METHODS
+
+    /**
+     * Move x steps.
+     * @param {number} steps - number of steps to move
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
+    moveSteps (steps, target) {
+        const radians = MathUtil.degToRad(90 - target.direction);
+        const dx = steps * Math.cos(radians);
+        const dy = steps * Math.sin(radians);
+        target.setXY(target.x + dx, target.y + dy);
+    }
 
     /**
      * Load number costumes from existing assets and add costumes to target of the utility object
@@ -780,8 +1024,13 @@ class Scratch3VizBlocks {
                 size = 32;
             } else if (option === 'picture') {
                 direction = 90;
-                xPos = this._xStart + this._interval + (numberIndex * this._interval / 5);
-                yPos = this._yStart;
+                xPos = this._xPicStart + this._interval + (numberIndex * this._interval / 5);
+                yPos = this._yPicStart;
+                size = 20;
+            } else if (option === 'pie') {
+                direction = 90;
+                xPos = this._xPieStart + this._interval + (numberIndex * this._interval / 5);
+                yPos = this._yPieStart;
                 size = 20;
             }
             costumeIndex = costumeIndex.charCodeAt() - 65 + 10;
@@ -791,9 +1040,9 @@ class Scratch3VizBlocks {
             if (penSkinId >= 0) {
                 this.runtime.renderer.penStamp(penSkinId, target.drawableID);
                 target.setCostume(target.getCostumeIndexByName(costume[costumeIndex].name));
-                target.setXY(xPos, yPos);
-                target.setSize(size);
                 target.setDirection(direction);
+                target.setSize(size);
+                target.setXY(xPos, yPos);
                 target.setVisible(true);
                 this.runtime.requestRedraw();
             }
