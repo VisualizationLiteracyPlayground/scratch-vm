@@ -90,8 +90,8 @@ class Scratch3VizBlocks {
         this._dotPos = [];
 
         // Variables for picture graph
-        this._xStart = -250;
-        this._yStart = 150;
+        this._xPicStart = -250;
+        this._yPicStart = 150;
         this._yCostumeStart = 100;
         this._picCategories = [];
         this._customSprites = newCostumeNames;
@@ -100,6 +100,8 @@ class Scratch3VizBlocks {
         }
 
         // Variables for pie chart
+        this._xPieStart = -250;
+        this._yPieStart = 150;
         this._radius = 120;
         this._categorySizesArr = [];
         this._pieChartSize = 0;
@@ -377,6 +379,15 @@ class Scratch3VizBlocks {
             blockIconURI: blockIconURI,
             blocks: [
                 {
+                    opcode: 'clear',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.clear',
+                        default: 'clear',
+                        description: 'clear canvas'
+                    })
+                },
+                {
                     opcode: 'drawXAxis',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -437,15 +448,6 @@ class Scratch3VizBlocks {
                         id: 'vizblocks.drawLine',
                         default: 'draw line',
                         description: 'draw line'
-                    })
-                },
-                {
-                    opcode: 'clear',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.clear',
-                        default: 'clear',
-                        description: 'clear canvas'
                     })
                 },
                 {
@@ -536,7 +538,7 @@ class Scratch3VizBlocks {
                         default: 'draw pie',
                         description: 'draw pie'
                     })
-                },
+                }
             ],
             menus: {
                 CHART: {
@@ -583,13 +585,15 @@ class Scratch3VizBlocks {
 
         // Clear for picture graph
         this._picCategories = [];
-        this._xStart = -250;
-        this._yStart = 150;
+        this._xPicStart = -250;
+        this._yPicStart = 150;
 
         // Clear for pie chart
         this._categorySizesArr = [];
         this._pieChartSize = 0;
         this._colors = [];
+        this._xPieStart = -250;
+        this._yPieStart = 150;
 
         target.sprite.costumes_.forEach(costume => {
             if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
@@ -635,11 +639,11 @@ class Scratch3VizBlocks {
                     target.setCostume(target.getCostumeIndexByName(picture));
                     target.setDirection(90);
                     target.setSize(20);
-                    target.setXY(this._xStart + 120 + (incrementDist * j), this._yStart);
+                    target.setXY(this._xPicStart + 120 + (incrementDist * j), this._yPicStart);
                     target.setVisible(true);
                     this.runtime.requestRedraw();
                 }
-                this._yStart -= 50;
+                this._yPicStart -= 50;
             }
         }
         this.runtime.renderer.penStamp(penSkinId, target.drawableID);
@@ -807,32 +811,41 @@ class Scratch3VizBlocks {
         const target = util.target;
         target.setDirection(0);
         const penSkinId = this._getPenLayerID();
+        const penState = this._getPenState(target);
         this._costumes = this.loadCostumes(target);
 
-        if (penSkinId >= 0 && this._categorySizesArr.length > 1) {
+        if (penSkinId >= 0 && this._categorySizesArr.length > 0) {
+            // Draw and label separate sections of the pie
             for (let i = 0; i < this._categorySizesArr.length; i++) {
                 const currLabel = Cast.toString(this._categorySizesArr[i][0]).toUpperCase();
                 const currSize = this._categorySizesArr[i][1];
                 this.changePenColorParamBy(this._colors[i], target);
 
+                // Draw label + color marking
+                this.processText(currLabel, penSkinId, 'pie', target);
+                this.setPenSizeTo(5, target);
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xPieStart + 120, this._yPieStart, this._xPieStart + 170, this._yPieStart);
+                this.setPenSizeTo(1, target);
+
                 let renderCount = Math.floor((currSize / this._pieChartSize) * (2 * Math.PI * this._radius));
-                const mid = Math.floor(renderCount / 2);
                 const degreesToTurn = 180 / (Math.PI * this._radius);
+                let isDrawing = false;
 
-                while (renderCount > 0) {
-                    target.setDirection(target.direction + degreesToTurn);
-                    target.setXY(0, 0); // Center of the renderer section
-
-                    // Draw label at midway point
-                    if (renderCount === mid) {
-                        this.processLabel(currLabel, penSkinId, 'pie', target);
+                while (renderCount >= 0) {
+                    if (isDrawing) {
+                        target.setDirection(target.direction + degreesToTurn);
+                    } else {
+                        target.setDirection(target.direction);
                     }
+                    target.setXY(75, 0); // Start at right side of the renderer section
+                    isDrawing = true;
                     this.penDown(target);
                     this.moveSteps(this._radius, target);
                     this.penUp(target);
 
                     renderCount--;
                 }
+                this._yPieStart -= 30;
             }
             this.runtime.requestRedraw();
         }
@@ -1024,21 +1037,14 @@ class Scratch3VizBlocks {
                 size = 32;
             } else if (option === 'picture') {
                 direction = 90;
-                xPos = this._xStart + this._interval + (numberIndex * this._interval / 5);
-                yPos = this._yStart;
+                xPos = this._xPicStart + this._interval + (numberIndex * this._interval / 5);
+                yPos = this._yPicStart;
                 size = 20;
             } else if (option === 'pie') {
                 direction = 90;
-                let stepsToMove = 0;
-                if (target.direction < 0) {
-                    stepsToMove = 100;
-                } else {
-                    stepsToMove = 20;
-                }
-                this.moveSteps(this._radius + stepsToMove, target);
-                xPos = target.x + (numberIndex * this._interval / 3);
-                yPos = target.y;
-                target.setXY(0, 0);
+                xPos = this._xPieStart + this._interval + (numberIndex * this._interval / 5);
+                yPos = this._yPieStart;
+                size = 20;
             }
             costumeIndex = costumeIndex.charCodeAt() - 65 + 10;
         }
