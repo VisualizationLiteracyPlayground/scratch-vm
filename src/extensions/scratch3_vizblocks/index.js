@@ -407,40 +407,26 @@ class Scratch3VizBlocks {
                     }
                 },
                 {
-                    opcode: 'readValCount',
+                    opcode: 'readKeyValue',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.readValCount',
-                        default: 'read value:[value] count:[count]',
+                        id: 'vizblocks.readKeyValue',
+                        default: 'read key:[key] value:[value] for [CHART]',
                         description: 'read from (value, count)'
                     }),
                     arguments: {
+                        key: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type here'
+                        },
                         value: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 0
                         },
-                        count: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
-                },
-                {
-                    opcode: 'readCategorySize',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.readCategorySize',
-                        default: 'read category:[category] size:[size]',
-                        description: 'read data from (category, size)'
-                    }),
-                    arguments: {
-                        category: {
+                        CHART: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'Type letters only'
-                        },
-                        size: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
+                            menu: 'PIE_DOT_CHART',
+                            defaultValue: 'dot plot'
                         }
                     }
                 },
@@ -479,7 +465,7 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'CHART',
+                            menu: 'LINE_DOT_CHART',
                             defaultValue: 'dot plot'
                         },
                         LABEL: {
@@ -541,9 +527,13 @@ class Scratch3VizBlocks {
                 }
             ],
             menus: {
-                CHART: {
+                LINE_DOT_CHART: {
                     acceptReporters: true,
                     items: ['dot plot', 'line chart']
+                },
+                PIE_DOT_CHART: {
+                    acceptReporters: true,
+                    items: ['dot plot', 'pie chart']
                 },
                 PICTURE: {
                     acceptReporters: true,
@@ -617,32 +607,29 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Read data from input as (value, count)
+     * Read data from input as (key, value, CHART)
      * @param {object} args - the block arguments.
      */
-    readValCount (args) {
-        const value = Cast.toNumber(args.value);
-        const count = Cast.toNumber(args.count);
+    readKeyValue (args) {
+        if (args.CHART === 'dot plot') {
+            const value = Cast.toNumber(args.key);
+            const count = Cast.toNumber(args.value);
 
-        this._valCountMap.set(value, count);
-    }
+            this._valCountMap.set(value, count);
+        } else if (args.CHART === 'pie chart') {
+            const category = Cast.toString(args.key);
+            const size = Cast.toNumber(args.value);
 
-    /**
-     * Read data from input as (category, size)
-     * @param {object} args - the block arguments.
-     */
-    readCategorySize (args){
-        const category = Cast.toString(args.category);
-        const size = Cast.toNumber(args.size);
+            this._categorySizesArr.push([category, size]);
+            this._pieChartSize += size;
 
-        this._categorySizesArr.push([category, size]);
-        this._pieChartSize += size;
-
-        if (this._colors.length === 0) {
-            this._colors = [15];
-        } else {
-            this._colors.push(this._colors[this._colors.length - 1] + 15);
+            if (this._colors.length === 0) {
+                this._colors = [15];
+            } else {
+                this._colors.push(this._colors[this._colors.length - 1] + 15);
+            }
         }
+
     }
 
     /**
