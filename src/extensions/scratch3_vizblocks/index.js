@@ -388,6 +388,87 @@ class Scratch3VizBlocks {
                     })
                 },
                 {
+                    opcode: 'readXY',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.readXY',
+                        default: 'read x:[X] y:[Y]',
+                        description: 'read from (X, Y)'
+                    }),
+                    arguments: {
+                        X: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        Y: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'readValCount',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.readValCount',
+                        default: 'read value:[value] count:[count]',
+                        description: 'read from (value, count)'
+                    }),
+                    arguments: {
+                        value: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        },
+                        count: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'readCategorySize',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.readCategorySize',
+                        default: 'read category:[category] size:[size]',
+                        description: 'read data from (category, size)'
+                    }),
+                    arguments: {
+                        category: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type letters only'
+                        },
+                        size: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'readPicCategoryCount',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.readPicCategoryCount',
+                        default: 'read [PICTURE] for category:[category] count:[count]',
+                        description: 'read （picture) for (category) with (count)'
+                    }),
+                    arguments: {
+                        category: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Type letters only'
+                        },
+                        PICTURE: {
+                            type: ArgumentType.STRING,
+                            menu: 'PICTURE',
+                            defaultValue: this._customSprites[0]
+                        },
+                        count: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
                     opcode: 'drawXAxis',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -423,25 +504,6 @@ class Scratch3VizBlocks {
                     }
                 },
                 {
-                    opcode: 'readXY',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.readXY',
-                        default: 'read x:[X] y:[Y]',
-                        description: 'read from (X, Y)'
-                    }),
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        },
-                        Y: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
-                },
-                {
                     opcode: 'drawLine',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -451,25 +513,6 @@ class Scratch3VizBlocks {
                     })
                 },
                 {
-                    opcode: 'readValCount',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.readValCount',
-                        default: 'read value:[value] count:[count]',
-                        description: 'read from (value, count)'
-                    }),
-                    arguments: {
-                        value: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        },
-                        count: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
-                },
-                {
                     opcode: 'plotDots',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -477,49 +520,6 @@ class Scratch3VizBlocks {
                         default: 'plot dots',
                         description: 'plot dots'
                     })
-                },
-                {
-                    opcode: 'readPicCategoryCount',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.readPicCategoryCount',
-                        default: 'read [PICTURE] for category:[category] count:[count]',
-                        description: 'read （picture) for (category) with (count)'
-                    }),
-                    arguments: {
-                        category: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'Type letters only'
-                        },
-                        PICTURE: {
-                            type: ArgumentType.STRING,
-                            menu: 'PICTURE',
-                            defaultValue: this._customSprites[0]
-                        },
-                        count: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
-                },
-                {
-                    opcode: 'readCategorySize',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'vizblocks.readCategorySize',
-                        default: 'read category:[category] size:[size]',
-                        description: 'read data from (category, size)'
-                    }),
-                    arguments: {
-                        category: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'Type letters only'
-                        },
-                        size: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
                 },
                 {
                     opcode: 'drawPictures',
@@ -604,6 +604,48 @@ class Scratch3VizBlocks {
     }
 
     /**
+     * Read data from input as (x, y)
+     * @param {object} args - the block arguments.
+     */
+    readXY (args) {
+        const x = Cast.toNumber(args.X);
+        const y = Cast.toNumber(args.Y);
+
+        this._xArray.push(x);
+        this._yArray.push(y);
+        this._posEmpty = false;
+    }
+
+    /**
+     * Read data from input as (value, count)
+     * @param {object} args - the block arguments.
+     */
+    readValCount (args) {
+        const value = Cast.toNumber(args.value);
+        const count = Cast.toNumber(args.count);
+
+        this._valCountMap.set(value, count);
+    }
+
+    /**
+     * Read data from input as (category, size)
+     * @param {object} args - the block arguments.
+     */
+    readCategorySize (args){
+        const category = Cast.toString(args.category);
+        const size = Cast.toNumber(args.size);
+
+        this._categorySizesArr.push([category, size]);
+        this._pieChartSize += size;
+
+        if (this._colors.length === 0) {
+            this._colors = [15];
+        } else {
+            this._colors.push(this._colors[this._colors.length - 1] + 15);
+        }
+    }
+
+    /**
      * Read data from input as (picture, category, count)
      * @param {object} args - the block arguments.
      */
@@ -613,40 +655,6 @@ class Scratch3VizBlocks {
             category: args.category,
             count: args.count
         });
-    }
-
-    /**
-     * Draw pictures for the picture graph.
-     * @param {object} args - the block arguments.
-     * @param {object} util - utility object provided by the runtime.
-     */
-    drawPictures (args, util) {
-        const target = util.target;
-        target.setCostume('costume1');
-        const penSkinId = this._getPenLayerID();
-        this._costumes = this.loadCostumes(target);
-        const incrementDist = 20;
-
-        if (penSkinId >= 0 && this._picCategories.length > 0) {
-            for (let i = 0; i < this._picCategories.length; i++) {
-                let {picture, category, count} = this._picCategories[i];
-                category = Cast.toString(category).toUpperCase();
-
-                this.processText(category, penSkinId, 'picture', target);
-                // Draw pictures based on the count
-                for (let j = 0; j < count; j++) {
-                    this.runtime.renderer.penStamp(penSkinId, target.drawableID);
-                    target.setCostume(target.getCostumeIndexByName(picture));
-                    target.setDirection(90);
-                    target.setSize(20);
-                    target.setXY(this._xPicStart + 120 + (incrementDist * j), this._yPicStart);
-                    target.setVisible(true);
-                    this.runtime.requestRedraw();
-                }
-                this._yPicStart -= 50;
-            }
-        }
-        this.runtime.renderer.penStamp(penSkinId, target.drawableID);
     }
 
     /**
@@ -731,30 +739,6 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Read data from input as (x, y)
-     * @param {object} args - the block arguments.
-     */
-    readXY (args) {
-        const x = Cast.toNumber(args.X);
-        const y = Cast.toNumber(args.Y);
-
-        this._xArray.push(x);
-        this._yArray.push(y);
-        this._posEmpty = false;
-    }
-
-    /**
-     * Read data from input as (value, count)
-     * @param {object} args - the block arguments.
-     */
-    readValCount (args) {
-        const value = Cast.toNumber(args.value);
-        const count = Cast.toNumber(args.count);
-
-        this._valCountMap.set(value, count);
-    }
-
-    /**
      * Plot the dots in a dot plot
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
@@ -785,21 +769,37 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Read data from input as (category, size)
+     * Draw pictures for the picture graph.
      * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
      */
-    readCategorySize (args){
-        const category = Cast.toString(args.category);
-        const size = Cast.toNumber(args.size);
+    drawPictures (args, util) {
+        const target = util.target;
+        target.setCostume('costume1');
+        const penSkinId = this._getPenLayerID();
+        this._costumes = this.loadCostumes(target);
+        const incrementDist = 20;
 
-        this._categorySizesArr.push([category, size]);
-        this._pieChartSize += size;
+        if (penSkinId >= 0 && this._picCategories.length > 0) {
+            for (let i = 0; i < this._picCategories.length; i++) {
+                let {picture, category, count} = this._picCategories[i];
+                category = Cast.toString(category).toUpperCase();
 
-        if (this._colors.length === 0) {
-            this._colors = [15];
-        } else {
-            this._colors.push(this._colors[this._colors.length - 1] + 15);
+                this.processText(category, penSkinId, 'picture', target);
+                // Draw pictures based on the count
+                for (let j = 0; j < count; j++) {
+                    this.runtime.renderer.penStamp(penSkinId, target.drawableID);
+                    target.setCostume(target.getCostumeIndexByName(picture));
+                    target.setDirection(90);
+                    target.setSize(20);
+                    target.setXY(this._xPicStart + 120 + (incrementDist * j), this._yPicStart);
+                    target.setVisible(true);
+                    this.runtime.requestRedraw();
+                }
+                this._yPicStart -= 50;
+            }
         }
+        this.runtime.renderer.penStamp(penSkinId, target.drawableID);
     }
 
     /**
