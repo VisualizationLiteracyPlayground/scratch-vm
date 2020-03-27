@@ -85,6 +85,10 @@ class Scratch3VizBlocks {
         this._yPos = [];
         this._posEmpty = true;
 
+        // Variables for bar graph
+        this._rectWidth = 0;
+        this._categoryValueMap = new Map();
+
         // Variables for dot plot
         this._valCountMap = new Map();
         this._dotPos = [];
@@ -425,8 +429,8 @@ class Scratch3VizBlocks {
                         },
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'PIE_DOT_CHART',
-                            defaultValue: 'dot plot'
+                            menu: 'PIE_DOT_BAR_CHART',
+                            defaultValue: 'bar chart'
                         }
                     }
                 },
@@ -465,8 +469,8 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'LINE_DOT_CHART',
-                            defaultValue: 'dot plot'
+                            menu: 'LINE_DOT_BAR_CHART',
+                            defaultValue: 'bar chart'
                         },
                         LABEL: {
                             type: ArgumentType.STRING,
@@ -499,6 +503,15 @@ class Scratch3VizBlocks {
                     })
                 },
                 {
+                    opcode: 'drawBar',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawBar',
+                        default: 'draw bar',
+                        description: 'draw bar'
+                    })
+                },
+                {
                     opcode: 'plotDots',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -527,13 +540,13 @@ class Scratch3VizBlocks {
                 }
             ],
             menus: {
-                LINE_DOT_CHART: {
+                LINE_DOT_BAR_CHART: {
                     acceptReporters: true,
-                    items: ['dot plot', 'line chart']
+                    items: ['dot plot', 'line chart', 'bar chart']
                 },
-                PIE_DOT_CHART: {
+                PIE_DOT_BAR_CHART: {
                     acceptReporters: true,
-                    items: ['dot plot', 'pie chart']
+                    items: ['dot plot', 'pie chart', 'bar chart']
                 },
                 PICTURE: {
                     acceptReporters: true,
@@ -567,6 +580,10 @@ class Scratch3VizBlocks {
             this._yArray = [];
             this._posEmpty = true;
         }
+
+        // Clear for bar chart
+        this._rectWidth = 0;
+        this._categoryValueMap = new Map();
 
         // Clear for dot plot
         this._valCountMap = new Map();
@@ -628,8 +645,14 @@ class Scratch3VizBlocks {
             } else {
                 this._colors.push(this._colors[this._colors.length - 1] + 15);
             }
-        }
+        } else if (args.CHART === 'bar chart') {
+            const type = Cast.toString(args.key);
+            const count = Cast.toNumber(args.value);
 
+            this._categoryValueMap.set(type, count);
+            this._xArray.push(type);
+            this._yArray.push(count);
+        }
     }
 
     /**
@@ -672,7 +695,7 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Draw Y axis for line chart.
+     * Draw Y axis for chart.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
@@ -720,6 +743,41 @@ class Scratch3VizBlocks {
             for (let i = 1; i < data.length; i++){
                 // eslint-disable-next-line max-len
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i - 1].x, data[i - 1].y, data[i].x, data[i].y);
+            }
+            this.runtime.requestRedraw();
+        }
+    }
+
+    /**
+     * Draw bars for the bar chart.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawBar (args, util) {
+        const rectWidth = this._rectWidth;
+        const space = rectWidth / 6;
+        const dataX = this._xPos;
+        const dataY = this._yPos;
+
+        const data = dataX.map((d, i) => ({
+            x: d,
+            y: dataY[i]
+        }));
+
+        const target = util.target;
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId >= 0 && data.length > 1) {
+            const penState = this._getPenState(target);
+            for (let i = 0; i < data.length; i++){
+
+                // eslint-disable-next-line max-len
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2) + space, this._yCenter, data[i].x - (rectWidth / 2) + space, data[i].y);
+                target.setDirection(90);
+
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2) + space, data[i].y, data[i].x + (rectWidth / 2) - space, data[i].y);
+                target.setDirection(90);
+
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x + (rectWidth / 2) - space, data[i].y, data[i].x + (rectWidth / 2) - space, this._yCenter);
             }
             this.runtime.requestRedraw();
         }
@@ -893,15 +951,15 @@ class Scratch3VizBlocks {
      * Process each character to display as a label
      * @param {int|string} label - the label text, can be number or string.
      * @param {int} penSkinId - Skin ID of the pen layer, or -1 on failure.
-     * @param {string} option - e.g. 'X', 'Y' or 'pie'.
+     * @param {string} option - e.g. 'X', 'Y', 'picture', 'pie' or 'bar'.
      * @param {RenderedTarget} target - target object that has been updated.
      * @param {?object} opt - optional parameters to process.
      */
     processText (label, penSkinId, option, target) {
         for (let index = 0; index < label.length; index++) {
             const char = label[index];
-            if (char >= 'A' && char <= 'Z') {
-                this.setText(penSkinId, index, 0, char, option, target);
+            if ((char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')) {
+                this.setText(penSkinId, index, 0, char, option, 'label', target);
             }
         }
     }
@@ -913,7 +971,7 @@ class Scratch3VizBlocks {
      * @param {int|string} label - the label text, can be number or string.
      * @param {string} axisOption - the axis option, e.g. 'X' or 'Y'.
      * @param {RenderedTarget} target - target object that has been updated.
-     * @param {string} chart - the type of chart e.g. dot plot or line chart
+     * @param {string} chart - the type of chart e.g. dot plot, line chart or bar chart
      */
     labelAxis (penSkinId, penState, label, axisOption, target, chart) {
         const thisMarker = axisOption === 'X' ? this._xMarkers : this._yMarkers;
@@ -924,8 +982,15 @@ class Scratch3VizBlocks {
 
         // generate internal markers
         if (axisOption === 'X'){
-            for (let i = 0; i * this._interval <= this._width; i++){
-                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._interval), this._yCenter, this._xCenter + (i * this._interval), this._yCenter + 5);
+            if (chart === 'line chart') {
+                for (let i = 0; i * this._interval <= this._width; i++){
+                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._interval), this._yCenter, this._xCenter + (i * this._interval), this._yCenter + 5);
+                }
+            } else if (chart === 'bar chart') {
+                this._rectWidth = this._width / (Array.from(this._categoryValueMap.keys()).length + 1);
+                for (let i = 0; i * this._rectWidth <= this._width; i++){
+                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._rectWidth), this._yCenter, this._xCenter + (i * this._rectWidth), this._yCenter + 5);
+                }
             }
         } else if (axisOption === 'Y'){
             for (let j = 1; j * this._interval <= this._height; j++){
@@ -957,6 +1022,31 @@ class Scratch3VizBlocks {
                     thisPos.push(thisCenter + (thisArray[d] * this._interval / divider));
                 }
             }
+        } else if (chart === 'bar chart') {
+            const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
+            const thisPos = axisOption === 'X' ? this._xPos : this._yPos;
+
+            if (axisOption === 'Y' && thisArray.length !== 0) {
+                const maxValue = Math.max.apply(null, thisArray);
+                const divider = this.prepareLargeNumbers(maxValue, thisMarker, penSkinId, axisOption, target);
+
+                // set position for input data
+                for (let d = 0; d < thisArray.length; d++) {
+                    thisPos.push(thisCenter + (thisArray[d] * this._interval / divider));
+                }
+            } else if (axisOption === 'X' && thisArray.length !== 0) {
+                for (let d = 0; d < thisArray.length; d++) {
+                    thisPos.push(thisCenter + ((d + 1) * this._rectWidth));
+                    let xLabel = Cast.toString(thisArray[d]).toUpperCase();
+
+                    // extract the first 5 chars to avoid long labels on X axis
+                    xLabel = xLabel.length > 5 ? xLabel.substr(0, 5) : xLabel;
+
+                    for (let i = 0; i < xLabel.length; i++) {
+                        this.setText(penSkinId, d + 1, i, xLabel[i], 'bar', 'axes', target);
+                    }
+                }
+            }
         }
     }
 
@@ -979,7 +1069,7 @@ class Scratch3VizBlocks {
             const num = number.toString();
             // Set text for each character in the number
             for (let i = 0; i < num.length; i++){
-                this.setText(penSkinId, index, i, num[i], axisOption, target);
+                this.setText(penSkinId, index, i, num[i], axisOption, 'axes', target);
             }
         });
 
@@ -993,9 +1083,10 @@ class Scratch3VizBlocks {
      * @param {int} charIndex - the index of char in label.
      * @param {int|string} costumeIndex - the index of costume.
      * @param {string} option - the context to set text in.
+     * @param {?string} type - optional, the type of text, label or axes.
      * @param {RenderedTarget} target - target object that has been updated.
      */
-    setText (penSkinId, numberIndex, charIndex, costumeIndex, option, target) {
+    setText (penSkinId, numberIndex, charIndex, costumeIndex, option, type, target) {
         let xPos;
         let yPos;
         let size;
@@ -1003,14 +1094,27 @@ class Scratch3VizBlocks {
 
         // set text based on costumeIndex
         if (costumeIndex <= 9 && costumeIndex >= 0) {
-            if (option === 'X') {
-                xPos = this._xCenter + (numberIndex * this._interval) + (charIndex * 8);
-                yPos = this._yCenter - 10;
-            } else if (option === 'Y') {
-                xPos = this._xCenter - 10;
-                yPos = this._yCenter + (numberIndex * this._interval) + (charIndex * 8);
+            if (type === '' || type === 'axes') {
+                if (option === 'X') {
+                    xPos = this._xCenter + (numberIndex * this._interval) + (charIndex * 8);
+                    yPos = this._yCenter - 10;
+                } else if (option === 'Y') {
+                    xPos = this._xCenter - 10;
+                    yPos = this._yCenter + (numberIndex * this._interval) + (charIndex * 8);
+                }
+                size = 20;
+            } else if (type === 'label') {
+                if (option === 'X') {
+                    direction = 90;
+                    xPos = this._xCenter + (this._interval * 3) + (numberIndex * this._interval / 3);
+                    yPos = this._yCenter - 40;
+                } else if (option === 'Y') {
+                    direction = 0;
+                    xPos = this._xCenter - 40;
+                    yPos = this._yCenter + this._interval + (numberIndex * this._interval / 3);
+                }
+                size = 28;
             }
-            size = 20;
         } else if (costumeIndex >= 'A' && costumeIndex <= 'Z') {
             if (option === 'X') {
                 direction = 90;
@@ -1031,6 +1135,11 @@ class Scratch3VizBlocks {
                 direction = 90;
                 xPos = this._xPieStart + this._interval + (numberIndex * this._interval / 5);
                 yPos = this._yPieStart;
+                size = 20;
+            } else if (option === 'bar') {
+                direction = 90;
+                xPos = this._xCenter + (numberIndex * this._rectWidth) + (charIndex * 8) - (this._rectWidth / 3);
+                yPos = this._yCenter - 10;
                 size = 20;
             }
             costumeIndex = costumeIndex.charCodeAt() - 65 + 10;
