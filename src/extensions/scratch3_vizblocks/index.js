@@ -91,7 +91,7 @@ class Scratch3VizBlocks {
         this._yPos = [];
         this._posEmpty = true;
 
-        // Variables for bar graph
+        // Variables for bar graph or histogram
         this._rectWidth = 0;
         this._categoryValueMap = new Map();
 
@@ -469,8 +469,8 @@ class Scratch3VizBlocks {
                         },
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'PIE_DOT_BAR_CHART',
-                            defaultValue: 'bar chart'
+                            menu: 'READ_KEY_VALUE_CHART_TYPE',
+                            defaultValue: 'histogram'
                         }
                     }
                 },
@@ -534,8 +534,8 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'LINE_DOT_SCATTER_BAR_CHART',
-                            defaultValue: 'bar chart'
+                            menu: 'X_CHART_TYPE',
+                            defaultValue: 'histogram'
                         },
                         LABEL: {
                             type: ArgumentType.STRING,
@@ -554,8 +554,8 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'LINE_SCATTER_BAR_CHART',
-                            defaultValue: 'line chart'
+                            menu: 'Y_CHART_TYPE',
+                            defaultValue: 'histogram'
                         },
                         LABEL: {
                             type: ArgumentType.STRING,
@@ -579,6 +579,15 @@ class Scratch3VizBlocks {
                         id: 'vizblocks.drawBar',
                         default: 'draw bar',
                         description: 'draw bar'
+                    })
+                },
+                {
+                    opcode: 'drawHistogram',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawHistogram',
+                        default: 'draw histogram',
+                        description: 'draw histogram'
                     })
                 },
                 {
@@ -635,17 +644,17 @@ class Scratch3VizBlocks {
                 }
             ],
             menus: {
-                LINE_DOT_SCATTER_BAR_CHART: {
+                X_CHART_TYPE: {
                     acceptReporters: true,
-                    items: ['dot plot', 'line chart', 'scatter plot', 'bar chart']
+                    items: ['dot plot', 'line chart', 'scatter plot', 'bar chart', 'histogram']
                 },
-                LINE_SCATTER_BAR_CHART: {
+                Y_CHART_TYPE: {
                     acceptReporters: true,
-                    items: ['line chart', 'scatter plot', 'bar chart']
+                    items: ['line chart', 'scatter plot', 'bar chart', 'histogram']
                 },
-                PIE_DOT_BAR_CHART: {
+                READ_KEY_VALUE_CHART_TYPE: {
                     acceptReporters: true,
-                    items: ['dot plot', 'pie chart', 'bar chart']
+                    items: ['dot plot', 'pie chart', 'bar chart', 'histogram']
                 },
                 PICTURE: {
                     acceptReporters: true,
@@ -757,13 +766,13 @@ class Scratch3VizBlocks {
             } else {
                 this._colors.push(this._colors[this._colors.length - 1] + 15);
             }
-        } else if (args.CHART === 'bar chart') {
-            const type = Cast.toString(args.key);
-            const count = Cast.toNumber(args.value);
+        } else if (args.CHART === 'bar chart' || args.CHART === 'histogram') {
+            const key = args.CHART === 'bar chart' ? Cast.toString(args.key) : Cast.toNumber(args.key);
+            const value = Cast.toNumber(args.value);
 
-            this._categoryValueMap.set(type, count);
-            this._xArray.push(type);
-            this._yArray.push(count);
+            this._categoryValueMap.set(key, value);
+            this._xArray.push(key);
+            this._yArray.push(value);
         }
     }
 
@@ -893,9 +902,11 @@ class Scratch3VizBlocks {
             y: dataY[i]
         }));
 
+        data.sort((a, b) => (a.x - b.x));
+
         const target = util.target;
         const penSkinId = this._getPenLayerID();
-        if (penSkinId >= 0 && data.length > 1) {
+        if (penSkinId >= 0 && data.length > 0) {
             const penState = this._getPenState(target);
             for (let i = 0; i < data.length; i++){
 
@@ -907,6 +918,42 @@ class Scratch3VizBlocks {
                 target.setDirection(90);
 
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x + (rectWidth / 2) - space, data[i].y, data[i].x + (rectWidth / 2) - space, this._yCenter);
+            }
+            this.runtime.requestRedraw();
+        }
+    }
+
+    /**
+     * Draw bars for the histogram.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawHistogram (args, util) {
+        const rectWidth = this._rectWidth;
+        const dataX = this._xPos;
+        const dataY = this._yPos;
+
+        const data = dataX.map((d, i) => ({
+            x: d,
+            y: dataY[i]
+        }));
+        
+        data.sort((a, b) => (a.x - b.x));
+
+        const target = util.target;
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId >= 0 && data.length > 0) {
+            const penState = this._getPenState(target);
+            for (let i = 0; i < data.length; i++){
+
+                // eslint-disable-next-line max-len
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2), this._yCenter, data[i].x - (rectWidth / 2), data[i].y);
+                target.setDirection(90);
+
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2), data[i].y, data[i].x + (rectWidth / 2), data[i].y);
+                target.setDirection(90);
+
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x + (rectWidth / 2), data[i].y, data[i].x + (rectWidth / 2), this._yCenter);
             }
             this.runtime.requestRedraw();
         }
@@ -1200,6 +1247,9 @@ class Scratch3VizBlocks {
         if (chart === 'bar chart') {
             this._rectWidth = this._chartWidth / (Array.from(this._categoryValueMap.keys()).length + 1);
             thisInterval = this._rectWidth;
+        } else if (chart === 'histogram' && axisOption === 'X') {
+            this._rectWidth = this._chartWidth / thisMarker;
+            thisInterval = this._rectWidth;
         }
 
         // generate internal markers
@@ -1224,7 +1274,7 @@ class Scratch3VizBlocks {
                     this._dotPos.push([thisCenter + (values[i] * this._interval / divider), values[i]]);
                 }
             }
-        } else if (chart === 'line chart' || chart === 'scatter plot') {
+        } else if (chart === 'line chart' || chart === 'scatter plot' || chart === 'histogram') {
             const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
             const thisPos = axisOption === 'X' ? this._xPos : this._yPos;
 
@@ -1232,9 +1282,15 @@ class Scratch3VizBlocks {
                 const maxValue = Math.max.apply(null, thisArray);
                 const divider = this.prepareLargeNumbers(maxValue, thisMarker, penSkinId, axisOption, target);
 
+                // eslint-disable-next-line no-console
+                console.log(divider);
                 // set position for input data
                 for (let d = 0; d < thisArray.length; d++) {
-                    thisPos.push(thisCenter + (thisArray[d] * this._interval / divider));
+                    if (chart === 'histogram' && axisOption === 'X') {
+                        thisPos.push(thisCenter + (thisArray[d] * this._rectWidth / divider));
+                    } else {
+                        thisPos.push(thisCenter + (thisArray[d] * this._interval / divider));
+                    }
                 }
             }
         } else if (chart === 'bar chart') {
@@ -1281,8 +1337,6 @@ class Scratch3VizBlocks {
             numbers.push(maxNumber / thisMarker * l);
         }
 
-        // eslint-disable-next-line no-console
-        console.log(numbers);
         numbers.forEach((number, index) => {
             const num = number.toString();
             // Set text for each character in the number
