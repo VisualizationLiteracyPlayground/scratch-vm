@@ -575,7 +575,7 @@ class Scratch3VizBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.drawBar',
-                        default: 'draw bar',
+                        default: 'draw bars',
                         description: 'draw bar'
                     })
                 },
