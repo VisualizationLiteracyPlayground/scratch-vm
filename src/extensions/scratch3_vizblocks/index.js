@@ -1040,7 +1040,7 @@ class Scratch3VizBlocks {
                     let xLabel = Cast.toString(thisArray[d]).toUpperCase();
 
                     // extract the first 5 chars to avoid long labels on X axis
-                    xLabel = xLabel.length > 5 ? xLabel.substr(0, 5) : xLabel;
+                    xLabel = xLabel.length > 5 ? xLabel.substr(0, 3) : xLabel;
 
                     for (let i = 0; i < xLabel.length; i++) {
                         this.setText(penSkinId, d + 1, i, xLabel[i], 'bar', 'axes', target);
