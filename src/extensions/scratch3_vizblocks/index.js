@@ -68,7 +68,6 @@ class Scratch3VizBlocks {
         this._penSkinId = -1;
 
         // Initiate canvas and center of coordinate system for the line chart / dot plot
-        this._yCenter = -100;
         this._chartWidth = 360;
         this._chartHeight = 200;
 
