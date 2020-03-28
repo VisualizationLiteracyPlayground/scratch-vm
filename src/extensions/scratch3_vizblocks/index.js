@@ -571,7 +571,7 @@ class Scratch3VizBlocks {
                     })
                 },
                 {
-                    opcode: 'drawBar',
+                    opcode: 'drawBars',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.drawBar',
