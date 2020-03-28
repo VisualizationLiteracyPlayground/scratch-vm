@@ -77,8 +77,6 @@ class Scratch3VizBlocks {
         this._xMarkers = 10;
         this._yMarkers = 5;
         this._interval = 36;
-        this._xCenter = -160;
-        this._yCenter = -100;
 
         // Initiate canvas and center of coordinate system for the line chart / dot plot
         this._chartWidth = 360;
@@ -470,7 +468,7 @@ class Scratch3VizBlocks {
                         CHART: {
                             type: ArgumentType.STRING,
                             menu: 'READ_KEY_VALUE_CHART_TYPE',
-                            defaultValue: 'histogram'
+                            defaultValue: 'dot plot'
                         }
                     }
                 },
@@ -535,7 +533,7 @@ class Scratch3VizBlocks {
                         CHART: {
                             type: ArgumentType.STRING,
                             menu: 'X_CHART_TYPE',
-                            defaultValue: 'histogram'
+                            defaultValue: 'dot plot'
                         },
                         LABEL: {
                             type: ArgumentType.STRING,
@@ -555,7 +553,7 @@ class Scratch3VizBlocks {
                         CHART: {
                             type: ArgumentType.STRING,
                             menu: 'Y_CHART_TYPE',
-                            defaultValue: 'histogram'
+                            defaultValue: 'dot plot'
                         },
                         LABEL: {
                             type: ArgumentType.STRING,
@@ -569,16 +567,16 @@ class Scratch3VizBlocks {
                     text: formatMessage({
                         id: 'vizblocks.drawLine',
                         default: 'draw line',
-                        description: 'draw line'
+                        description: 'draw lines'
                     })
                 },
                 {
-                    opcode: 'drawBar',
+                    opcode: 'drawBars',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'vizblocks.drawBar',
+                        id: 'vizblocks.drawBars',
                         default: 'draw bar',
-                        description: 'draw bar'
+                        description: 'draw bars'
                     })
                 },
                 {
@@ -891,7 +889,7 @@ class Scratch3VizBlocks {
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
-    drawBar (args, util) {
+    drawBars (args, util) {
         const rectWidth = this._rectWidth;
         const space = rectWidth / 6;
         const dataX = this._xPos;
@@ -1282,8 +1280,6 @@ class Scratch3VizBlocks {
                 const maxValue = Math.max.apply(null, thisArray);
                 const divider = this.prepareLargeNumbers(maxValue, thisMarker, penSkinId, axisOption, target);
 
-                // eslint-disable-next-line no-console
-                console.log(divider);
                 // set position for input data
                 for (let d = 0; d < thisArray.length; d++) {
                     if (chart === 'histogram' && axisOption === 'X') {
@@ -1310,7 +1306,7 @@ class Scratch3VizBlocks {
                     thisPos.push(thisCenter + ((d + 1) * this._rectWidth));
                     let xLabel = Cast.toString(thisArray[d]).toUpperCase();
 
-                    // extract the first 5 chars to avoid long labels on X axis
+                    // extract the first 3 chars to avoid long labels on the x-axis
                     xLabel = xLabel.length > 3 ? xLabel.substr(0, 3) : xLabel;
 
                     for (let i = 0; i < xLabel.length; i++) {
@@ -1366,7 +1362,7 @@ class Scratch3VizBlocks {
 
         // set text based on costumeIndex
         if (costumeIndex <= 9 && costumeIndex >= 0) {
-            if (type === '' || type === 'axes') {
+            if (type === 'axes') {
                 if (option === 'X') {
                     xPos = this._xCenter + (numberIndex * this._interval) + (charIndex * 8);
                     yPos = this._yCenter - 10;
