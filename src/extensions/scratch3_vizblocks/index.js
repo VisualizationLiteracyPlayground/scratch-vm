@@ -77,6 +77,12 @@ class Scratch3VizBlocks {
         this._xMarkers = 10;
         this._yMarkers = 5;
         this._interval = 36;
+        this._xCenter = -160;
+        this._yCenter = -100;
+
+        // Initiate canvas and center of coordinate system for the line chart / dot plot
+        this._chartWidth = 360;
+        this._chartHeight = 200;
 
         // Variables for line graph
         this._xArray = [];
@@ -110,6 +116,15 @@ class Scratch3VizBlocks {
         this._categorySizesArr = [];
         this._pieChartSize = 0;
         this._colors = [];
+
+        // Variables for grid
+        this._gridWidth = 360;
+        this._gridHeight = 180;
+        this._gridValues = [];
+        this._safeColor = '#6ef649';
+        this._mildColor = '#f6e749';
+        this._severeColor = '#f6b649';
+        this._dangerColor = '#f64949';
 
         // Costumes array
         this._costumes = [];
@@ -255,6 +270,31 @@ class Scratch3VizBlocks {
                 this.runtime.requestRedraw();
             }
         }
+    }
+
+    /**
+     * Sets the pen to a particular RGB color.
+     * The transparency is reset to 0.
+     * @param {int} color - the color to set, expressed as a 24-bit RGB value (0xRRGGBB).
+     * @param {RenderedTarget} target - target object that has been updated.
+     */
+    setPenColorToColor (color, target) {
+        const penState = this._getPenState(target);
+        const rgb = Cast.toRgbColorObject(color);
+        const hsv = Color.rgbToHsv(rgb);
+        penState.color = (hsv.h / 360) * 100;
+        penState.saturation = hsv.s * 100;
+        penState.brightness = hsv.v * 100;
+        if (rgb.hasOwnProperty('a')) {
+            penState.transparency = 100 * (1 - (rgb.a / 255.0));
+        } else {
+            penState.transparency = 0;
+        }
+
+        // Set the legacy "shade" value the same way scratch 2 did.
+        penState._shade = penState.brightness / 2;
+
+        this._updatePenColor(penState);
     }
 
     /**
@@ -459,6 +499,31 @@ class Scratch3VizBlocks {
                     }
                 },
                 {
+                    opcode: 'readGridXYValues',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.readGridXY',
+                        default: 'read grid x:[GRID_X_VALUES] y:[GRID_Y_VALUES] count:[count]',
+                        description: 'read from (X, Y)'
+                    }),
+                    arguments: {
+                        GRID_X_VALUES: {
+                            type: ArgumentType.STRING,
+                            menu: 'GRID_X_VALUES',
+                            defaultValue: '1'
+                        },
+                        GRID_Y_VALUES: {
+                            type: ArgumentType.STRING,
+                            menu: 'GRID_Y_VALUES',
+                            defaultValue: '1'
+                        },
+                        count: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 1
+                        }
+                    }
+                },
+                {
                     opcode: 'drawXAxis',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -483,10 +548,15 @@ class Scratch3VizBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.drawYAxis',
-                        default: 'draw Y-axis label:[LABEL]',
+                        default: 'draw Y-axis for [CHART] label:[LABEL]',
                         description: 'draw Y-axis and insert label'
                     }),
                     arguments: {
+                        CHART: {
+                            type: ArgumentType.STRING,
+                            menu: 'LINE_SCATTER_CHART',
+                            defaultValue: 'line chart'
+                        },
                         LABEL: {
                             type: ArgumentType.STRING,
                             defaultValue: 'Type letters only'
@@ -521,6 +591,15 @@ class Scratch3VizBlocks {
                     })
                 },
                 {
+                    opcode: 'plotPoints',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.plotPoints',
+                        default: 'plot points',
+                        description: 'plot points'
+                    })
+                },
+                {
                     opcode: 'drawPictures',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -537,12 +616,32 @@ class Scratch3VizBlocks {
                         default: 'draw pie',
                         description: 'draw pie'
                     })
+                },
+                {
+                    opcode: 'drawGrid',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'vizblocks.drawGrid',
+                        default: 'draw grid for [PICTURE]',
+                        description: 'draw grid'
+                    }),
+                    arguments: {
+                        PICTURE: {
+                            type: ArgumentType.STRING,
+                            menu: 'PICTURE',
+                            defaultValue: this._customSprites[0]
+                        }
+                    }
                 }
             ],
             menus: {
                 LINE_DOT_SCATTER_BAR_CHART: {
                     acceptReporters: true,
                     items: ['dot plot', 'line chart', 'scatter plot', 'bar chart']
+                },
+                LINE_SCATTER_CHART: {
+                    acceptReporters: true,
+                    items: ['line chart', 'scatter plot']
                 },
                 PIE_DOT_BAR_CHART: {
                     acceptReporters: true,
@@ -551,6 +650,14 @@ class Scratch3VizBlocks {
                 PICTURE: {
                     acceptReporters: true,
                     items: this._customSprites
+                },
+                GRID_X_VALUES: {
+                    acceptReporters: true,
+                    items: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+                },
+                GRID_Y_VALUES: {
+                    acceptReporters: true,
+                    items: ['1', '2', '3', '4', '5']
                 }
             }
         };
@@ -566,14 +673,15 @@ class Scratch3VizBlocks {
     clear (args, util) {
         const penSkinId = this._getPenLayerID();
         const target = util.target;
-        target.setVisible(false);
         if (penSkinId >= 0) {
             this.runtime.renderer.penClear(penSkinId);
             this.runtime.requestRedraw();
         }
+        // Default blue
+        this.setPenColorToColor('#0000ff', target);
 
-        // Clear for line chart
-        if (!this._posEmpty){
+        // Clear for line chart or scatter plot
+        if (!this._posEmpty) {
             this._xPos.length = 0;
             this._yPos.length = 0;
             this._xArray = [];
@@ -602,6 +710,10 @@ class Scratch3VizBlocks {
         this._xPieStart = -250;
         this._yPieStart = 150;
 
+        // Clear for grid
+        this._gridValues = [];
+
+        // Delete costumes that are loaded
         target.sprite.costumes_.forEach(costume => {
             if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
                 target.deleteCostume(target.getCostumeIndexByName(costume.name));
@@ -668,6 +780,22 @@ class Scratch3VizBlocks {
     }
 
     /**
+     * Read data from grid input as (x, y, count)
+     * @param {object} args - the block arguments.
+     */
+    readGridXYValues (args) {
+        const x = Cast.toNumber(args.GRID_X_VALUES);
+        const y = Cast.toNumber(args.GRID_Y_VALUES);
+        const count = Cast.toNumber(args.count);
+
+        this._gridValues.push({
+            x,
+            y,
+            count
+        });
+    }
+
+    /**
      * Draw x-axis for line chart or dot plot.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
@@ -701,6 +829,7 @@ class Scratch3VizBlocks {
      */
     drawYAxis (args, util) {
         const target = util.target;
+        const chart = args.CHART;
         const label = Cast.toString(args.LABEL).toUpperCase();
 
         target.setVisible(false);
@@ -715,7 +844,7 @@ class Scratch3VizBlocks {
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
 
             // Labelling y-axis
-            this.labelAxis(penSkinId, penState, label, 'Y', target, 'line chart');
+            this.labelAxis(penSkinId, penState, label, 'Y', target, chart);
             this.runtime.requestRedraw();
         }
     }
@@ -814,6 +943,29 @@ class Scratch3VizBlocks {
     }
 
     /**
+     * Plot the points in a scatter plot
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    plotPoints (args, util) {
+        const dataX = this._xPos;
+        const dataY = this._yPos;
+
+        const target = util.target;
+        const penSkinId = this._getPenLayerID();
+        this.setPenSizeTo(5, target);
+
+        if (penSkinId >= 0 && dataX.length > 1) {
+            const penState = this._getPenState(target);
+            for (let i = 0; i < dataX.length; i++){
+                // eslint-disable-next-line max-len
+                this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, dataX[i], dataY[i], dataX[i], dataY[i]);
+            }
+            this.runtime.requestRedraw();
+        }
+    }
+
+    /**
      * Draw pictures for the picture graph.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
@@ -896,7 +1048,71 @@ class Scratch3VizBlocks {
         }
     }
 
+    /**
+     * Draw grid for the heatmap.
+     * @param {object} args - the block arguments.
+     * @param {object} util - utility object provided by the runtime.
+     */
+    drawGrid (args, util) {
+        const target = util.target;
+        const penSkinId = this._getPenLayerID();
+        if (penSkinId >= 0) {
+            const penState = this._getPenState(target);
+            this.runtime.renderer.penClear(penSkinId);
+            this.runtime.requestRedraw();
+
+            // Sprite needs to be stamped to appear behind the pen's drawing
+            target.setCostume(target.getCostumeIndexByName(args.PICTURE));
+            this.runtime.renderer.penStamp(penSkinId, target.drawableID);
+            this.runtime.requestRedraw();
+            target.setCostume('costume1');
+
+            this.setPenSizeTo(1, target);
+            // Draw all sides of the grid and vertical dividers
+            this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, this._xCenter + this._gridWidth, this._yCenter);
+            for (let i = 0; i * this._interval <= this._gridWidth; i++) {
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._interval), this._yCenter, this._xCenter + (i * this._interval), this._yCenter + this._gridHeight);
+            }
+            this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter + this._gridHeight, this._xCenter + this._gridWidth, this._yCenter + this._gridHeight);
+
+            // Draw middle horizontal dividers
+            for (let j = 1; j * this._interval < this._gridHeight; j++) {
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter + (j * this._interval), this._xCenter + this._gridWidth, this._yCenter + (j * this._interval));
+            }
+
+            // Fill boxes with corresponding colors
+            for (let k = 0; k < this._gridValues.length; k++) {
+                const {x, y, count} = this._gridValues[k];
+                let xStart = this._xCenter + ((x - 1) * this._interval) + 1;
+                const yStart = this._yCenter + ((y - 1) * this._interval) + 1;
+                this.setPenColorToColor(this.checkColorState(count), target);
+
+                // Fill the current box without touching the borders
+                for (let i = 0; i < this._interval - 2; i++) {
+                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, xStart, yStart, xStart, yStart + this._interval - 2);
+                    xStart++;
+                }
+            }
+        }
+    }
+
     // HELPER METHODS
+
+    /**
+     * Checks the value and returns its corresponding severity color.
+     * @param {number} value - number of cases in a box of a heatmap
+     * @returns {string} hex color corresponding to the severity.
+     */
+    checkColorState (value) {
+        if (value >= 0 && value <= 20) {
+            return this._safeColor;
+        } else if (value > 20 && value <= 50) {
+            return this._mildColor;
+        } else if (value > 51 && value <= 100) {
+            return this._severeColor;
+        }
+        return this._dangerColor;
+    }
 
     /**
      * Move x steps.
@@ -981,12 +1197,13 @@ class Scratch3VizBlocks {
         // Set up label for axis
         this.processText(label, penSkinId, axisOption, target);
 
+        if (chart === 'bar chart') {
+            this._rectWidth = this._chartWidth / (Array.from(this._categoryValueMap.keys()).length + 1);
+            thisInterval = this._rectWidth;
+        }
+
         // generate internal markers
         if (axisOption === 'X'){
-            if (chart === 'bar chart') {
-                this._rectWidth = this._chartWidth / (Array.from(this._categoryValueMap.keys()).length + 1);
-                thisInterval = this._rectWidth;
-            }
             for (let i = 0; i * thisInterval <= this._chartWidth; i++){
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * thisInterval), this._yCenter, this._xCenter + (i * thisInterval), this._yCenter + 5);
             }
@@ -1007,7 +1224,7 @@ class Scratch3VizBlocks {
                     this._dotPos.push([thisCenter + (values[i] * this._interval / divider), values[i]]);
                 }
             }
-        } else if (chart === 'line chart') {
+        } else if (chart === 'line chart' || chart === 'scatter plot') {
             const thisArray = axisOption === 'X' ? this._xArray : this._yArray;
             const thisPos = axisOption === 'X' ? this._xPos : this._yPos;
 
