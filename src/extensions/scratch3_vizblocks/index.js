@@ -70,8 +70,8 @@ class Scratch3VizBlocks {
         // Initiate canvas and center of coordinate system for the line chart / dot plot
         this._xCenter = -160;
         this._yCenter = -100;
-        this._width = 360;
-        this._height = 200;
+        this._chartWidth = 360;
+        this._chartHeight = 200;
 
         // Shared variables
         this._xMarkers = 10;
@@ -469,7 +469,7 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'LINE_DOT_BAR_CHART',
+                            menu: 'LINE_DOT_SCATTER_BAR_CHART',
                             defaultValue: 'bar chart'
                         },
                         LABEL: {
@@ -540,9 +540,9 @@ class Scratch3VizBlocks {
                 }
             ],
             menus: {
-                LINE_DOT_BAR_CHART: {
+                LINE_DOT_SCATTER_BAR_CHART: {
                     acceptReporters: true,
-                    items: ['dot plot', 'line chart', 'bar chart']
+                    items: ['dot plot', 'line chart', 'scatter plot', 'bar chart']
                 },
                 PIE_DOT_BAR_CHART: {
                     acceptReporters: true,
@@ -683,7 +683,7 @@ class Scratch3VizBlocks {
         const penSkinId = this._getPenLayerID();
         if (penSkinId >= 0) {
             const penState = this._getPenState(target);
-            target.x = this._xCenter + this._width;
+            target.x = this._xCenter + this._chartWidth;
             target.y = this._yCenter;
             // draw x-axis line
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
@@ -710,7 +710,7 @@ class Scratch3VizBlocks {
         if (penSkinId >= 0) {
             const penState = this._getPenState(target);
             target.x = this._xCenter;
-            target.y = this._yCenter + this._height;
+            target.y = this._yCenter + this._chartHeight;
             // draw y-axis line
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
 
@@ -976,24 +976,22 @@ class Scratch3VizBlocks {
     labelAxis (penSkinId, penState, label, axisOption, target, chart) {
         const thisMarker = axisOption === 'X' ? this._xMarkers : this._yMarkers;
         const thisCenter = axisOption === 'X' ? this._xCenter : this._yCenter;
+        let thisInterval = this._interval;
 
         // Set up label for axis
         this.processText(label, penSkinId, axisOption, target);
 
         // generate internal markers
         if (axisOption === 'X'){
-            if (chart === 'line chart') {
-                for (let i = 0; i * this._interval <= this._width; i++){
-                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._interval), this._yCenter, this._xCenter + (i * this._interval), this._yCenter + 5);
-                }
-            } else if (chart === 'bar chart') {
-                this._rectWidth = this._width / (Array.from(this._categoryValueMap.keys()).length + 1);
-                for (let i = 0; i * this._rectWidth <= this._width; i++){
-                    this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * this._rectWidth), this._yCenter, this._xCenter + (i * this._rectWidth), this._yCenter + 5);
-                }
+            if (chart === 'bar chart') {
+                this._rectWidth = this._chartWidth / (Array.from(this._categoryValueMap.keys()).length + 1);
+                thisInterval = this._rectWidth;
+            }
+            for (let i = 0; i * thisInterval <= this._chartWidth; i++){
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter + (i * thisInterval), this._yCenter, this._xCenter + (i * thisInterval), this._yCenter + 5);
             }
         } else if (axisOption === 'Y'){
-            for (let j = 1; j * this._interval <= this._height; j++){
+            for (let j = 1; j * this._interval <= this._chartHeight; j++){
                 this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter + (j * this._interval), this._xCenter + 5, this._yCenter + (j * this._interval));
             }
         }
@@ -1040,7 +1038,7 @@ class Scratch3VizBlocks {
                     let xLabel = Cast.toString(thisArray[d]).toUpperCase();
 
                     // extract the first 5 chars to avoid long labels on X axis
-                    xLabel = xLabel.length > 5 ? xLabel.substr(0, 3) : xLabel;
+                    xLabel = xLabel.length > 3 ? xLabel.substr(0, 3) : xLabel;
 
                     for (let i = 0; i < xLabel.length; i++) {
                         this.setText(penSkinId, d + 1, i, xLabel[i], 'bar', 'axes', target);
