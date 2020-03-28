@@ -554,7 +554,7 @@ class Scratch3VizBlocks {
                     arguments: {
                         CHART: {
                             type: ArgumentType.STRING,
-                            menu: 'LINE_SCATTER_CHART',
+                            menu: 'LINE_SCATTER_BAR_CHART',
                             defaultValue: 'line chart'
                         },
                         LABEL: {
@@ -639,9 +639,9 @@ class Scratch3VizBlocks {
                     acceptReporters: true,
                     items: ['dot plot', 'line chart', 'scatter plot', 'bar chart']
                 },
-                LINE_SCATTER_CHART: {
+                LINE_SCATTER_BAR_CHART: {
                     acceptReporters: true,
-                    items: ['line chart', 'scatter plot']
+                    items: ['line chart', 'scatter plot', 'bar chart']
                 },
                 PIE_DOT_BAR_CHART: {
                     acceptReporters: true,
@@ -796,7 +796,7 @@ class Scratch3VizBlocks {
     }
 
     /**
-     * Draw x-axis for line chart or dot plot.
+     * Draw x-axis for line chart, dot plot, scatter plot or bar chart.
      * @param {object} args - the block arguments.
      * @param {object} util - utility object provided by the runtime.
      */
@@ -1280,6 +1280,9 @@ class Scratch3VizBlocks {
         for (let l = 0; l <= thisMarker; l++){
             numbers.push(maxNumber / thisMarker * l);
         }
+
+        // eslint-disable-next-line no-console
+        console.log(numbers);
         numbers.forEach((number, index) => {
             const num = number.toString();
             // Set text for each character in the number
