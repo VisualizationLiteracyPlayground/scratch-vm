@@ -68,8 +68,6 @@ class Scratch3VizBlocks {
         this._penSkinId = -1;
 
         // Initiate canvas and center of coordinate system for the line chart / dot plot
-        this._xCenter = -160;
-        this._yCenter = -100;
         this._chartWidth = 360;
         this._chartHeight = 200;
 
@@ -567,7 +565,7 @@ class Scratch3VizBlocks {
                     text: formatMessage({
                         id: 'vizblocks.drawLine',
                         default: 'draw line',
-                        description: 'draw lines'
+                        description: 'draw line'
                     })
                 },
                 {
@@ -575,7 +573,7 @@ class Scratch3VizBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'vizblocks.drawBars',
-                        default: 'draw bar',
+                        default: 'draw bars',
                         description: 'draw bars'
                     })
                 },
