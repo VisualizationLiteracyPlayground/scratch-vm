@@ -1308,7 +1308,7 @@ class Scratch3VizBlocks {
                     thisPos.push(thisCenter + ((d + 1) * this._rectWidth));
                     let xLabel = Cast.toString(thisArray[d]).toUpperCase();
 
-                    // extract the first 5 chars to avoid long labels on X axis
+                    // extract the first 3 chars to avoid long labels on the x-axis
                     xLabel = xLabel.length > 3 ? xLabel.substr(0, 3) : xLabel;
 
                     for (let i = 0; i < xLabel.length; i++) {
