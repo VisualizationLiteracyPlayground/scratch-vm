@@ -818,9 +818,10 @@ class Scratch3VizBlocks {
         this._costumes = this.loadCostumes(target);
 
         const penSkinId = this._getPenLayerID();
+
         if (penSkinId >= 0) {
             const penState = this._getPenState(target);
-            target.x = this._xCenter + this._chartWidth;
+            target.x = chart === 'histogram' ? this._xCenter + this._chartWidth + (this._chartWidth / this._xMarkers / 2) : this._xCenter + this._chartWidth;
             target.y = this._yCenter;
             // draw x-axis line
             this.runtime.renderer.penLine(penSkinId, penState.penAttributes, this._xCenter, this._yCenter, target.x, target.y);
@@ -1369,10 +1370,12 @@ class Scratch3VizBlocks {
         // set text based on costumeIndex
         if (costumeIndex <= 9 && costumeIndex >= 0) {
             if (type === 'axes') {
-                if (option === 'X') {
-                    xPos = this._xCenter + (numberIndex * this._interval) + (charIndex * 8);
+                if (option === 'X' || option === 'bar') {
+                    direction = 90;
+                    xPos = option === 'X' ? this._xCenter + (numberIndex * this._interval) + (charIndex * 8) : this._xCenter + (numberIndex * this._rectWidth) + (charIndex * 10);
                     yPos = this._yCenter - 10;
                 } else if (option === 'Y') {
+                    direction = 0;
                     xPos = this._xCenter - 10;
                     yPos = this._yCenter + (numberIndex * this._interval) + (charIndex * 8);
                 }
@@ -1412,7 +1415,7 @@ class Scratch3VizBlocks {
                 size = 20;
             } else if (option === 'bar') {
                 direction = 90;
-                xPos = this._xCenter + (numberIndex * this._rectWidth) + (charIndex * 8) - (this._rectWidth / 3);
+                xPos = this._xCenter + (numberIndex * this._rectWidth) + (charIndex * 8);
                 yPos = this._yCenter - 10;
                 size = 20;
             }
