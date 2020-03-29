@@ -75,12 +75,14 @@ class Scratch3VizBlocks {
         this._xMarkers = 10;
         this._yMarkers = 5;
         this._interval = 36;
+        this._xCenter = -160;
+        this._yCenter = -100;
 
         // Initiate canvas and center of coordinate system for the line chart / dot plot
         this._chartWidth = 360;
         this._chartHeight = 200;
 
-        // Variables for line graph
+        // Variables for line graph, bar and histogram
         this._xArray = [];
         this._yArray = [];
         this._xPos = [];
@@ -551,7 +553,7 @@ class Scratch3VizBlocks {
                         CHART: {
                             type: ArgumentType.STRING,
                             menu: 'Y_CHART_TYPE',
-                            defaultValue: 'dot plot'
+                            defaultValue: 'line chart'
                         },
                         LABEL: {
                             type: ArgumentType.STRING,
@@ -689,12 +691,12 @@ class Scratch3VizBlocks {
         if (!this._posEmpty) {
             this._xPos.length = 0;
             this._yPos.length = 0;
-            this._xArray = [];
-            this._yArray = [];
+            this._xArray.length = 0;
+            this._yArray.length = 0;
             this._posEmpty = true;
         }
 
-        // Clear for bar chart
+        // Clear for bar chart and histogram
         this._rectWidth = 0;
         this._categoryValueMap = new Map();
 
@@ -769,6 +771,8 @@ class Scratch3VizBlocks {
             this._categoryValueMap.set(key, value);
             this._xArray.push(key);
             this._yArray.push(value);
+
+            this._posEmpty = false;
         }
     }
 
@@ -938,18 +942,22 @@ class Scratch3VizBlocks {
 
         const target = util.target;
         const penSkinId = this._getPenLayerID();
+
+        const maxValue = Math.max.apply(null, this._xArray);
+        const maxNumber = maxValue % 10 === 0 ? maxValue : 10 * (Math.floor(maxValue / 10) + 1);
+        const divider = maxNumber / this._xMarkers;
         if (penSkinId >= 0 && data.length > 0) {
             const penState = this._getPenState(target);
             for (let i = 0; i < data.length; i++){
 
                 // eslint-disable-next-line max-len
-                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2), this._yCenter, data[i].x - (rectWidth / 2), data[i].y);
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2 / divider), this._yCenter, data[i].x - (rectWidth / 2 / divider), data[i].y);
                 target.setDirection(90);
 
-                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2), data[i].y, data[i].x + (rectWidth / 2), data[i].y);
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x - (rectWidth / 2 / divider), data[i].y, data[i].x + (rectWidth / 2 / divider), data[i].y);
                 target.setDirection(90);
 
-                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x + (rectWidth / 2), data[i].y, data[i].x + (rectWidth / 2), this._yCenter);
+                this.runtime.renderer.penLine(penSkinId, penState.penAttributes, data[i].x + (rectWidth / 2 / divider), data[i].y, data[i].x + (rectWidth / 2 / divider), this._yCenter);
             }
             this.runtime.requestRedraw();
         }
@@ -1240,7 +1248,7 @@ class Scratch3VizBlocks {
         // Set up label for axis
         this.processText(label, penSkinId, axisOption, target);
 
-        if (chart === 'bar chart') {
+        if (chart === 'bar chart' & axisOption === 'X') {
             this._rectWidth = this._chartWidth / (Array.from(this._categoryValueMap.keys()).length + 1);
             thisInterval = this._rectWidth;
         } else if (chart === 'histogram' && axisOption === 'X') {
