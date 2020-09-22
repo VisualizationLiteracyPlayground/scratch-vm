@@ -9,7 +9,8 @@ const formatMessage = require('format-message');
 const MathUtil = require('../../util/math-util');
 const RenderedTarget = require('../../sprites/rendered-target');
 const StageLayering = require('../../engine/stage-layering');
-const AssetType = require('../../../node_modules/scratch-storage/src/AssetType');
+const ScratchStorage = require('scratch-storage');
+const AssetType = ScratchStorage.AssetType;
 const {loadCostumeFromAsset} = require('../../import/load-costume');
 const {newCostumeNames} = require('./helper');
 
