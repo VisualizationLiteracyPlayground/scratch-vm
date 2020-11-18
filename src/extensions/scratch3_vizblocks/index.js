@@ -683,18 +683,11 @@ class Scratch3VizBlocks {
      * @param {object} util - utility object provided by the runtime.
      */
     clear (args, util) {
-        if (!util) {
-            // Guard case
-            return;
-        }
         const penSkinId = this._getPenLayerID();
-        const target = util.target;
         if (penSkinId >= 0) {
             this.runtime.renderer.penClear(penSkinId);
             this.runtime.requestRedraw();
         }
-        // Default blue
-        this.setPenColorToColor('#0000ff', target);
 
         // Clear for line chart or scatter plot
         if (!this._posEmpty) {
@@ -712,7 +705,6 @@ class Scratch3VizBlocks {
         // Clear for dot plot
         this._valCountMap = new Map();
         this._dotPos = [];
-        this.setPenSizeTo(1, target);
 
         // Clear for picture graph
         this._picCategories = [];
@@ -729,13 +721,20 @@ class Scratch3VizBlocks {
         // Clear for grid
         this._gridValues = [];
 
-        // Delete costumes that are loaded
-        target.sprite.costumes_.forEach(costume => {
-            if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
-                target.deleteCostume(target.getCostumeIndexByName(costume.name));
-            }
-        });
-        target.setCostume('costume1');
+        if (util) {
+            const target = util.target;
+            // Default blue
+            this.setPenColorToColor('#0000ff', target);
+            // Clear for dot plot
+            this.setPenSizeTo(1, target);
+            // Delete costumes that are loaded
+            target.sprite.costumes_.forEach(costume => {
+                if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
+                    target.deleteCostume(target.getCostumeIndexByName(costume.name));
+                }
+            });
+            target.setCostume('costume1');
+        }
     }
 
     /**
