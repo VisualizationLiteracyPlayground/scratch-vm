@@ -279,7 +279,8 @@ const compressInputTree = function (block, blocks) {
  */
 const getExtensionIdForOpcode = function (opcode) {
     const index = opcode.indexOf('_');
-    const prefix = opcode.substring(0, index);
+    const forbiddenSymbols = /[^\w-]/g;
+    const prefix = opcode.substring(0, index).replace(forbiddenSymbols, '-');
     if (CORE_EXTENSIONS.indexOf(prefix) === -1) {
         if (prefix !== '') return prefix;
     }

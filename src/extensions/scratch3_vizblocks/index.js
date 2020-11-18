@@ -418,7 +418,11 @@ class Scratch3VizBlocks {
     getInfo () {
         return {
             id: 'vizblocks',
-            name: 'VizBlocks',
+            name: formatMessage({
+                id: 'vizblocks.extensionName',
+                default: 'VizBlocks',
+                description: 'Name of extension that adds visualization blocks'
+            }),
             blockIconURI: blockIconURI,
             blocks: [
                 {
@@ -679,6 +683,10 @@ class Scratch3VizBlocks {
      * @param {object} util - utility object provided by the runtime.
      */
     clear (args, util) {
+        if (!util) {
+            // Guard case
+            return;
+        }
         const penSkinId = this._getPenLayerID();
         const target = util.target;
         if (penSkinId >= 0) {
