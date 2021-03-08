@@ -728,12 +728,15 @@ class Scratch3VizBlocks {
             // Clear for dot plot
             this.setPenSizeTo(1, target);
             // Delete costumes that are loaded
+            /*
+            - Deleting costumes cause pictograph and heatmap to not function after saving on server
             target.sprite.costumes_.forEach(costume => {
                 if (costume.name !== 'costume1' && costume.name !== 'costume2' && !newCostumeNames.includes(costume.name)) {
                     target.deleteCostume(target.getCostumeIndexByName(costume.name));
                 }
             });
             target.setCostume('costume1');
+            */
         }
     }
 
